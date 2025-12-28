@@ -3,8 +3,9 @@ using MelonLoader;
 using S1API.Internal.Abstraction;
 using S1API.Saveables;
 using S1API.GameTime;
+using Empire.GeneralSetup.Data;
 
-namespace Empire
+namespace Empire.GeneralSetup
 {
     public class EmpireSaveData : Saveable
     {

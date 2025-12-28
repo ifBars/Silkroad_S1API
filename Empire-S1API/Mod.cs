@@ -12,16 +12,16 @@ namespace Empire
         public override void OnInitializeMelon()
         {
             // Initialize JSON data first
-            JSONDeserializer.Initialize();
+            //JSONDeserializer.Initialize();
         }
 
         public override void OnSceneWasUnloaded(int buildIndex, string sceneName)
         {
             if (sceneName == "Main")
             {
-                MelonLogger.Msg("🧹 Resetting Empire static state after Main scene unload");
-                //MyApp.Reset();
-                Contacts.Reset();
+                //MelonLogger.Msg("🧹 Resetting Empire static state after Main scene unload");
+                //EmpirePhoneApp.Reset();
+                //Contacts.Reset();
                 
             }
         }
@@ -30,12 +30,12 @@ namespace Empire
         {
             if (sceneName == "Main")
             {
-                // Also reset on initialization to be safe
-                MelonLogger.Msg("🧹 Resetting Empire static state after Main scene initialization");
-                //MyApp.Reset();
-                Contacts.Reset();
-                
-            }
+				// Also reset on initialization to be safe
+				//MelonLogger.Msg("🧹 Resetting Empire static state after Main scene initialization");
+				//EmpirePhoneApp.Reset();
+				//Contacts.Reset();
+
+			}
         }
     }
 }

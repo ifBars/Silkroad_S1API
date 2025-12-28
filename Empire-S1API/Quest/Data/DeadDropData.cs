@@ -1,6 +1,6 @@
 ﻿using S1API.DeadDrops;
 
-namespace Empire
+namespace Empire.Quest.Data
 {
     public class DeadDropData
     {

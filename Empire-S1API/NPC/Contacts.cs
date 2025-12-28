@@ -1,32 +1,59 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using Empire.DebtHelpers;
+using Empire.NPC.Data;
+using Empire.NPC.S1API_NPCs;
 using MelonLoader;
-using MelonLoader.Utils;
-using Newtonsoft.Json;
-using S1API.Logging;
-using S1API.Entities.NPCs;
-using UnityEngine;
-using S1API.GameTime;
 
-namespace Empire
+namespace Empire.NPC
 {
     public static class Contacts
     {
-        public static Dictionary<string, BlackmarketBuyer> Buyers { get; set; } = new Dictionary<string, BlackmarketBuyer>();
-        public static bool IsInitialized { get; set; } = false;
+        public static Dictionary<string, EmpireNPC> Buyers { get; set; } = new Dictionary<string, EmpireNPC>(); // Key: DealerId, Value: EmpireNPC Buyer
+		public static Dictionary<string, EmpireNPC> BuyersByDisplayName { get; set; } = new Dictionary<string, EmpireNPC>(); // Key: DealerId, Value: EmpireNPC Buyer
+		public static bool IsInitialized { get; set; } = false;
         public static bool IsUnlocked { get; set; } = false;
         //public static BlackmarketBuyer saveBuyer { get; set; }
         public static Dealer standardDealer { get; set; } = new Dealer { Name = "Blackmarket Buyer", Image = "EmpireIcon_quest.png" };
         private static bool _isUpdateCoroutineRunning = false;
 
-        public static BlackmarketBuyer GetBuyer(string dealerName)
+		public static readonly List<Type> AllEmpireNPCs = typeof(EmpireNPC)
+	        .Assembly
+	        .GetTypes()
+	        .Where(t => t.IsSubclassOf(typeof(EmpireNPC)) && !t.IsAbstract)
+	        .ToList();
+
+        public static void RegisterEmpireNPC(EmpireNPC npc)
         {
-            return Buyers.TryGetValue(dealerName, out var buyer) ? buyer : null;
+            Buyers[npc.DealerId] = npc; // Use indexer to add or update
+            BuyersByDisplayName[npc.DisplayName] = npc;
+
+			MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}");
+
+            if (!Buyers.ContainsKey(npc.DealerId))
+            {
+                if (!Buyers.TryAdd(npc.DealerId, npc))
+                    MelonLogger.Msg($"❌ Failed to add Empire NPC: {npc.DealerId} to Buyers dictionary.");
+                else
+                    MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}");
+            }
+            else
+            {
+                MelonLogger.Warning($"⚠️ Empire NPC already registered: {npc.DealerId}");
+            }
         }
+
+		public static EmpireNPC? GetBuyer(string dealerName)
+        {
+			BuyersByDisplayName.TryGetValue(dealerName, out var buyer);
+            MelonLogger.Msg($"🔍 GetBuyer called for dealerName: {dealerName}, Found: {buyer != null}");
+
+            return buyer;
+        }
+
         //GetDealerDataByName
-        public static Dealer GetDealerDataByName(string dealerName)
+        public static Dealer? GetDealerDataByName(string dealerName)
         {
             //If dealerName is null or empty or not found, return null
             if (string.IsNullOrEmpty(dealerName))
@@ -41,6 +68,7 @@ namespace Empire
             }
             return dealer;
         }
+
         //GetDealerDataByIndex
         public static Dealer GetDealerDataByIndex(int index)
         {
@@ -68,9 +96,9 @@ namespace Empire
             Buyers.Clear();
             IsInitialized = false;
             IsUnlocked = false;
-            BlackmarketBuyer.dealerDataIndex = 0;
+            //BlackmarketBuyer.dealerDataIndex = 0;
             // Reset the dealer field to force re-initialization
-            BlackmarketBuyer.dealer = null;
+            //BlackmarketBuyer.dealer = null;
             _isUpdateCoroutineRunning = false; // Allow coroutine to be restarted
             MelonLogger.Msg("🧹 Empire Contacts state reset complete");
         }
@@ -105,23 +133,26 @@ namespace Empire
                     bool canUnlock = buyer.UnlockRequirements == null ||
                                      !buyer.UnlockRequirements.Any() ||
                                      buyer.UnlockRequirements.All(req =>
-                                         GetBuyer(req.Name)?._DealerData.Reputation >= req.MinRep);
+                                         GetBuyer(req.Name)?.DealerSaveData.Reputation >= req.MinRep);
 
                     ////Log the buyer name and unlock status
-                    MelonLogger.Msg($"Buyer: {buyer.DealerName}, Unlock Status: {canUnlock}");
+                    MelonLogger.Msg($"Buyer: {buyer.DisplayName}, Unlock Status: {canUnlock}");
                     //If cannot unlock, log the requirements and the current reputation
                     if (!canUnlock)
                     {
-                        foreach (var req in buyer.UnlockRequirements)
+                        if (buyer.UnlockRequirements?.Any() == true)
                         {
-                            var unlockBuyer = GetBuyer(req.Name);
-                            if (unlockBuyer != null)
+                            foreach (var req in buyer.UnlockRequirements)
                             {
-                                MelonLogger.Msg($"Unlock Requirement: {req.Name}, Current Reputation: {unlockBuyer._DealerData.Reputation}, Required Reputation: {req.MinRep}");
-                            }
-                            else
-                            {
-                                MelonLogger.Msg($"Unlock Requirement: {req.Name} not found.");
+                                var unlockBuyer = GetBuyer(req.Name);
+                                if (unlockBuyer != null)
+                                {
+                                    MelonLogger.Msg($"Unlock Requirement: {req.Name}, Current Reputation: {unlockBuyer.DealerSaveData.Reputation}, Required Reputation: {req.MinRep}");
+                                }
+                                else
+                                {
+                                    MelonLogger.Msg($"Unlock Requirement: {req.Name} not found.");
+                                }
                             }
                         }
                     }
@@ -131,28 +162,28 @@ namespace Empire
                         if (!buyer.IsInitialized)
                         {
                             buyer.IsInitialized = true;
-                            if (buyer._DealerData.IntroDone == false) // First time Intro
+                            if (buyer.DealerSaveData.IntroDone == false) // First time Intro
                             {
                                 buyer.SendCustomMessage("Intro");
-                                MelonLogger.Msg($"✅ Dealer {buyer.DealerName} intro sent.");
-                                buyer._DealerData.IntroDone = true; // Set IntroDone to true
+                                MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} intro sent.");
+                                buyer.DealerSaveData.IntroDone = true; // Set IntroDone to true
                             }
                             
                             
-                                if (buyer.Debt != null && buyer.Debt.TotalDebt > 0 && buyer._DealerData.DebtRemaining > 0)
+                                if (buyer.Debt != null && buyer.Debt.TotalDebt > 0 && buyer.DealerSaveData.DebtRemaining > 0)
                                 {
                                     buyer.DebtManager = new DebtManager(buyer);
-                                    MelonLogger.Msg($"❌ Dealer {buyer.DealerName} is locked due to debt: {buyer.Debt.TotalDebt}");
+                                    MelonLogger.Msg($"❌ Dealer {buyer.DisplayName} is locked due to debt: {buyer.Debt.TotalDebt}");
                                 }
 
                             
-                            MelonLogger.Msg($"✅ Initialized dealer: {buyer.DealerName}");
+                            MelonLogger.Msg($"✅ Initialized dealer: {buyer.DisplayName}");
                         }
                         buyer.UnlockDrug();
                     }
                     else
                     {
-                        MelonLogger.Msg($"⚠️ Dealer {buyer.DealerName} is locked (unlock requirements not met)");
+                        MelonLogger.Msg($"⚠️ Dealer {buyer.DisplayName} is locked (unlock requirements not met)");
                     }
 
                     //MelonLogger.Msg($"✅ Contacts.Buyers now contains {Buyers.Count} buyers.");
@@ -169,119 +200,6 @@ namespace Empire
                 // Reset the flag when coroutine completes
                 _isUpdateCoroutineRunning = false;
             }
-        }
-    }
-    //TODO - Move to JSON
-    //create a public static class QualityColors that contains an array caller Color
-public static class QualityColors
-    {
-        public static string[] Colors = new string[]
-        {
-            "#a84545", "#5bad38", "#358ecd", "#e93be9", "#ecb522"
-        };
-    }
-
-    public static class JSONDeserializer
-    {
-        public static DealerData dealerData { get; set; } = new DealerData();
-        //two public dictionary to store the EffectsName and EffectsDollarMult; and QualitiesName and QualitiesDollarMult Lists
-        public static Dictionary<string, float> EffectsDollarMult { get; set; } = new Dictionary<string, float>();
-        public static Dictionary<string, float> QualitiesDollarMult { get; set; } = new Dictionary<string, float>();
-        public static List<float> RandomNumberRanges { get; set; } = new List<float>();
-        public static void Initialize()
-        {
-            // Load dealer data
-            string jsonPath = Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "empire.json");
-            if (!File.Exists(jsonPath))
-            {
-                MelonLogger.Error("❌ empire.json file not found.");
-                return;
-            }
-
-            try
-            {
-                // Load dealer data if not already loaded (null or empty)
-                if (dealerData.Dealers == null || dealerData.Dealers.Count == 0)
-                {
-                    MelonLogger.Msg("Loading dealer data from empire.json...");
-                    string jsonContent = File.ReadAllText(jsonPath);
-                    MelonLogger.Msg("JSON Content read. Deserializing");
-                    try
-                    {
-                        // Deserialize the JSON content into DealerData object
-                        dealerData = JsonConvert.DeserializeObject<DealerData>(jsonContent);
-                    }
-                    catch (JsonReaderException ex)
-                    {
-                        MelonLogger.Error($"❌ Failed to parse empire.json: {ex.Message}");
-                    }
-                    catch (Exception ex)
-                    {
-                        MelonLogger.Error($"❌ Unexpected error during initialization: {ex}");
-                    }
-                    MelonLogger.Msg("JSON Content deserialized");
-                }
-
-                if (dealerData?.Dealers == null || dealerData.Dealers.Count == 0)
-                {
-                    MelonLogger.Error("❌ No dealers found in empire.json.");
-                    return;
-                }
-            }
-            catch (JsonReaderException ex)
-            {
-                MelonLogger.Error($"❌ Failed to parse empire.json: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Error($"❌ Unexpected error during initialization: {ex}");
-            }
-            
-            // Load additional JSON files in the Empire folder
-            string empireFolder = Path.Combine(MelonEnvironment.ModsDirectory, "Empire");
-            try
-            {
-                var additionalFiles = Directory.GetFiles(empireFolder, "*.json")
-                    .Where(f => !f.Equals(jsonPath, StringComparison.OrdinalIgnoreCase));
-                foreach (var file in additionalFiles)
-                {
-                    try
-                    {
-                        string additionalJson = File.ReadAllText(file);
-                        var additionalData = JsonConvert.DeserializeObject<DealerData>(additionalJson);
-                        if (additionalData?.Dealers != null && additionalData.Dealers.Count > 0)
-                        {
-                            // Only add dealers whose Name is not already present
-                            var existingNames = new HashSet<string>(dealerData.Dealers.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
-                            var newDealers = additionalData.Dealers
-                                .Where(d => !string.IsNullOrWhiteSpace(d.Name) && !existingNames.Contains(d.Name))
-                                .ToList();
-
-                            dealerData.Dealers.AddRange(newDealers);
-                            MelonLogger.Msg($"Loaded additional {newDealers.Count} dealers from {Path.GetFileName(file)}");
-                        }
-                    }
-                    catch (Exception exFile)
-                    {
-                        MelonLogger.Error($"❌ Error reading/de-serializing additional file {Path.GetFileName(file)}: {exFile.Message}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Error($"❌ Unexpected error while scanning additional JSON files: {ex}");
-            }
-
-            // Create two dictionaries from EffectsName and EffectsDollarMult; and QualityTypes and QualitiesDollarMult Lists
-            EffectsDollarMult = dealerData?.EffectsName?.Select((name, index) => new { name = name.Trim().ToLowerInvariant(), index })
-                .ToDictionary(x => x.name, x => dealerData?.EffectsDollarMult?[x.index] ?? 0f);
-            QualitiesDollarMult = (dealerData?.QualityTypes ?? new List<string>())
-                .Select((name, index) => new { name = name.Trim().ToLowerInvariant(), index })
-                .ToDictionary(x => x.name, x => dealerData?.QualitiesDollarMult?[x.index] ?? 0f);
-            // Log both in MelonLogger
-            MelonLogger.Msg($"Effects Dollar Mult: {string.Join(", ", EffectsDollarMult.Select(x => $"{x.Key}: {x.Value}"))}");
-            MelonLogger.Msg($"Qualities Dollar Mult: {string.Join(", ", QualitiesDollarMult.Select(x => $"{x.Key}: {x.Value}"))}");
-            RandomNumberRanges = dealerData?.RandomNumberRanges ?? new List<float>();
         }
     }
 }

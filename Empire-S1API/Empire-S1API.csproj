@@ -106,6 +106,9 @@
             <HintPath>$(MonoAssembliesPath)\UnityEngine.InputLegacyModule.dll</HintPath>
         </Reference>
     </ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="NPC\S1API_NPCs\Icons\*.png" />
+	</ItemGroup>
 
     <!-- Shared Deps -->
     <ItemGroup>
@@ -113,17 +116,23 @@
        <Reference Include="0Harmony">
            <HintPath>$(MelonLoaderAssembliesPath)\0Harmony.dll</HintPath>
        </Reference>
-		<Reference Include="S1API">
-			<HintPath>..\..\Assemblies\S1API.dll</HintPath>
-		</Reference>
        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-       <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
+       <PackageReference Include="LavaGang.MelonLoader" Version="0.7.1" />
+       <PackageReference Include="S1API.Forked" Version="2.8.5" />
        
 
 
     </ItemGroup>
 
-    <!-- Automated local deployment -->
+	<!--Testing harness -->
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+			<_Parameter1>Empire.Tests</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+
+	<!-- Automated local deployment -->
     <Target Name="PostBuildMono" AfterTargets="Build" Condition=" '$(AutomateLocalDeployment)' == 'true' and '$(Configuration)' == 'Mono' ">
         <Copy SourceFiles=".\bin\Mono\.netstandard2.1\Empire-S1API.dll" DestinationFiles="$(LocalMonoDeploymentPath)\Mods\Empire.dll" />
 		<Copy SourceFiles=".\References\empire.json" DestinationFiles="$(LocalMonoDeploymentPath)\Mods\Empire\empire.json" />

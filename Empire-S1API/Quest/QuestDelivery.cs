@@ -18,16 +18,19 @@ using S1API.Quests.Constants;
 using Random = UnityEngine.Random;
 using System.IO;
 using MelonLoader.Utils;
+using Empire.Phone;
+using Empire.NPC;
+using Empire.NPC.S1API_NPCs;
+using Empire.Quest.Data;
+using S1Quest = S1API.Quests.Quest;
 
-
-
-namespace Empire
+namespace Empire.Quest
 {
-    public class QuestDelivery : Quest
-    {
+    public class QuestDelivery : S1Quest
+	{
         [SaveableField("DeliveryData")]
         public DeliverySaveData Data = new DeliverySaveData();
-        public BlackmarketBuyer buyer;
+        public EmpireNPC buyer;
         private DeadDropInstance deliveryDrop;
         private StorageInstance? subscribedStorage;
         public QuestEntry deliveryEntry;
@@ -48,9 +51,9 @@ namespace Empire
                 rewardEntry.SetState(QuestState.Failed);
             QuestActive = false;
             Active = null; // 👈 Reset after cancel
-            Fail();
-            
+            Fail();            
         }
+
         public void Cleanup()
         {
             MelonLogger.Msg("🚫 QuestDelivery.Cleanup() called.");
@@ -60,6 +63,7 @@ namespace Empire
             QuestActive = false;
             Active = null; // 👈 Reset after cancel
         }
+
         private void ExpireCountdown()
         {
             
@@ -96,6 +100,7 @@ namespace Empire
                 return ImageUtils.LoadImage(Data.QuestImage ?? Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "EmpireIcon_quest.png"));
             }
         }
+
         protected override void OnLoaded()
         {
             MelonLogger.Msg("Quest OnLoaded called.");
@@ -122,7 +127,6 @@ namespace Empire
                 yield break;
             }
         }
-
 
         protected override void OnCreated()
         {
@@ -180,6 +184,7 @@ namespace Empire
 
             MelonLogger.Msg("📦 QuestDelivery started with drop locations assigned.");
         }
+
         private uint PackageAmount(string packaging)
         {
             // Return the amount based on the packaging type - UPDATABLE
@@ -495,24 +500,24 @@ namespace Empire
                   
                 }
                 // Pay the reward or debt
-                else if (buyer._DealerData.DebtRemaining > 0 && !buyer.DebtManager.paidthisweek)
+                else if (buyer.DealerSaveData.DebtRemaining > 0 && !buyer.DebtManager.paidthisweek)
                 {
                     // If debt remaining < reward, set it to 0 and pay the rest
-                    if (buyer._DealerData.DebtRemaining <= buyer.Debt.ProductBonus * Data.Reward)
+                    if (buyer.DealerSaveData.DebtRemaining <= buyer.Debt.ProductBonus * Data.Reward)
                     {
-                        var temp1 = Data.Reward - (int)(buyer._DealerData.DebtRemaining / buyer.Debt.ProductBonus);
-                        var temp2 = buyer._DealerData.DebtRemaining;
-                        buyer._DealerData.DebtRemaining = 0;
+                        var temp1 = Data.Reward - (int)(buyer.DealerSaveData.DebtRemaining / buyer.Debt.ProductBonus);
+                        var temp2 = buyer.DealerSaveData.DebtRemaining;
+                        buyer.DealerSaveData.DebtRemaining = 0;
                         //buyer.SendCustomMessage("Congrats! You Paid off the debt.");
-                        MelonLogger.Msg($"   Paid off debt to {buyer.DealerName}");
+                        MelonLogger.Msg($"   Paid off debt to {buyer.DisplayName}");
                         Money.ChangeCashBalance(temp1);
                         buyer.DebtManager.SendDebtMessage((int)temp2, "deal");
                     }
                     else
                     {
-                        MelonLogger.Msg($"   Paid off debt: ${Data.Reward} to {buyer.DealerName}");
-                        buyer._DealerData.DebtRemaining -= buyer.Debt.ProductBonus * Data.Reward;
-                        buyer._DealerData.DebtPaidThisWeek += buyer.Debt.ProductBonus * Data.Reward;
+                        MelonLogger.Msg($"   Paid off debt: ${Data.Reward} to {buyer.DisplayName}");
+                        buyer.DealerSaveData.DebtRemaining -= buyer.Debt.ProductBonus * Data.Reward;
+                        buyer.DealerSaveData.DebtPaidThisWeek += buyer.Debt.ProductBonus * Data.Reward;
                         buyer.DebtManager.SendDebtMessage((int) (Data.Reward * buyer.Debt.ProductBonus), "deal");
                     }
                     
@@ -535,7 +540,7 @@ namespace Empire
             
             MelonLogger.Msg($"   Rewarded : ${Data.Reward} and Rep {Data.RepReward} and Xp (if completed) {Data.XpReward} from {Data.DealerName}");
 
-            MyApp.Instance.OnQuestComplete();
+            EmpirePhoneApp.Instance.OnQuestComplete();
             rewardEntry?.Complete();
         }
 

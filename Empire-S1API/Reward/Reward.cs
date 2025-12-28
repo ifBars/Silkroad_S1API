@@ -13,17 +13,19 @@ using S1API.Entities;
 using S1API.Console;
 using UnityEngine;
 using Console = S1API.Console;
+using Empire.NPC;
+using Empire.NPC.S1API_NPCs;
 
-namespace Empire
+namespace Empire.Reward
 {
 
     public class RewardManager
     {
-        BlackmarketBuyer buyer;
+        EmpireNPC buyer;
         // NEW: Store dealer reward info from the buyer's associated dealer
         public bool isRewardAvailable = false;
 
-        public RewardManager(BlackmarketBuyer buyer)
+        public RewardManager(EmpireNPC buyer)
         {
             this.buyer = buyer;
             isRewardAvailable = true;
@@ -119,14 +121,14 @@ namespace Empire
                 MelonLogger.Error("No reward available from this contact.");
                 return;
             }
-            if (buyer.Reward.unlockRep > 0 && buyer._DealerData.Reputation < buyer.Reward.unlockRep)
+            if (buyer.Reward.unlockRep > 0 && buyer.DealerSaveData.Reputation < buyer.Reward.unlockRep)
             {
-                MelonLogger.Error($"Insufficient reputation to claim reward. Required: {buyer.Reward.unlockRep}, Current: {buyer._DealerData.Reputation}");
+                MelonLogger.Error($"Insufficient reputation to claim reward. Required: {buyer.Reward.unlockRep}, Current: {buyer.DealerSaveData.Reputation}");
                 return;
             }
             MelonLoader.MelonLogger.Msg($"Claiming reward: {buyer.Reward.Type} with args: {string.Join(", ", buyer.Reward.Args)}");
             // Deduct reputation cost from current reputation
-            buyer._DealerData.Reputation -= buyer.Reward.RepCost;
+            buyer.DealerSaveData.Reputation -= buyer.Reward.RepCost;
             isRewardAvailable = false;
             // Start coroutine to execute reward after 10 seconds
             MelonCoroutines.Start(ExecuteRewardAfterDelay());

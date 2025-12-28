@@ -1,15 +1,17 @@
 using Newtonsoft.Json;
-using Empire;
 using System;
 using System.Collections.Generic;
 
-public class GlobalSaveData
+namespace Empire.GeneralSetup.Data
 {
-    public bool UncNelsonCartelIntroDone;
-    public int TotalDealsCompleted;
-    public GlobalSaveData()
+    public class GlobalSaveData
     {
-        UncNelsonCartelIntroDone = false;
-        TotalDealsCompleted = 0;
+        public bool UncNelsonCartelIntroDone;
+        public int TotalDealsCompleted;
+        public GlobalSaveData()
+        {
+            UncNelsonCartelIntroDone = false;
+            TotalDealsCompleted = 0;
+        }
     }
 }

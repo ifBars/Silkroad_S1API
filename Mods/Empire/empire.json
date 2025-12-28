@@ -1,7 +1,7 @@
 {
     "version": {
-        "s1api": "1.7.9",
-        "empire": "1.11"
+        "s1api": "2.8.5",
+        "empire": "1.2"
     },
     "effectsName": [
         "AntiGravity",
@@ -94,6 +94,7 @@
     "productTypes": [
         "weed",
         "meth",
+        "shroom",
         "cocaine"
     ],
     "randomNumberRanges": [

@@ -1,9 +1,8 @@
 using Newtonsoft.Json;
-using Empire;
 using System;
 using System.Collections.Generic;
 
-namespace Empire
+namespace Empire.NPC.Data
 {
 
     public class DealerSaveData

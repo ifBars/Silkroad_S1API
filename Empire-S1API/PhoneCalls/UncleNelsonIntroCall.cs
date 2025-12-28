@@ -7,7 +7,7 @@ namespace Empire.PhoneCalls
     // Phone call that delivers Uncle Nelson's intro dialogue as a staged call
     public class UncleNelsonIntroCall : PhoneCallDefinition
     {
-        public UncleNelsonIntroCall(NPC? caller) : base(caller)
+        public UncleNelsonIntroCall(S1API.Entities.NPC? caller) : base(caller)
         {
             // Mirror the three intro text messages as call stages
             AddStage("Listen up, kid. I'm out of the business now, but I still got some connections. I'll put in a good word for you. How far you go is up to you. Make good relations and do good business with the dealers and you'll climb up the ladders. That'll get you access to some top tier deals.");

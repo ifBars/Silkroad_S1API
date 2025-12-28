@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
-using Empire;
 
-namespace Empire
+namespace Empire.Phone.Data
 {
     public class QuestData
     {

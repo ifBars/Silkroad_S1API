@@ -9,8 +9,9 @@ using S1API.Logging;
 using S1API.Entities.NPCs;
 using S1API.PhoneCalls;
 using Empire.PhoneCalls;
+using S1API.Entities;
 
-namespace Empire
+namespace Empire.GeneralSetup
 {
     public static class GeneralSetup
     {
@@ -26,7 +27,7 @@ namespace Empire
                 //MelonLogger.Msg($"Unc Calls: {EmpireSaveData.SaveData.UncNelsonCartelIntroDone}");
                 EmpireSaveData.SaveData.UncNelsonCartelIntroDone = true;
                 // Queue the intro as a phone call with staged dialogue
-                var caller = NPC1.Get<UncleNelson>() as UncleNelson;
+                var caller = S1API.Entities.NPC.Get<UncleNelson>() as UncleNelson;
 
                 if (caller != null)
                 {

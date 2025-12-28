@@ -2,8 +2,16 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Empire;
-using Il2Cpp;
+using Empire.NPC;
+using Empire.NPC.S1API_NPCs;
+using Empire.Phone.Data;
+using Empire.Quest;
+using Empire.Utilities.EffectHelpers;
+using Empire.Utilities.QuestHelpers;
+
+
+//using Empire;
+//using Il2Cpp;
 using MelonLoader;
 using MelonLoader.Utils;
 using S1API.Console;
@@ -15,12 +23,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-namespace Empire
+namespace Empire.Phone
 {
 
-    public class MyApp : S1API.PhoneApp.PhoneApp
+    public class EmpirePhoneApp : S1API.PhoneApp.PhoneApp
     {
-        public static MyApp Instance { get; set; }
+        public static EmpirePhoneApp Instance { get; set; }
         protected override string AppName => "Empire";
         protected override string AppTitle => "Empire";
         protected override string IconLabel => "Empire";
@@ -53,7 +61,7 @@ namespace Empire
         private Text managementTabLabel;
         public static int Index;
 
-        private BlackmarketBuyer selectedBuyer;
+        private EmpireNPC selectedBuyer;
         private GameObject managementDetailPanel;
 
         public static string QuestImage;
@@ -70,7 +78,7 @@ namespace Empire
             }     
             if (Instance.q != null)
             {
-                MelonLogger.Msg("[EmpireApp] Resetting MyApp instance.");
+                MelonLogger.Msg("[EmpireApp] Resetting EmpirePhoneApp instance.");
                 Instance.q = null;
             }
         }
@@ -86,6 +94,7 @@ namespace Empire
             // Final fallback: no parent available (UI factory should handle a null parent).
             return null;
         }
+
         protected override void OnCreated()
         {
             base.OnCreated();
@@ -347,12 +356,11 @@ namespace Empire
             }
         }
 
-
         private void UpdateBuyerDetails(string tab)
         {
             if (managementDetailPanel == null)
             {
-                MelonLogger.Warning("[MyApp] UpdateBuyerDetails called but managementDetailPanel is null.");
+                MelonLogger.Warning("[EmpirePhoneApp] UpdateBuyerDetails called but managementDetailPanel is null.");
                 return;
             }
 
@@ -371,12 +379,12 @@ namespace Empire
             string content = "";
             if (tab == "Reputation")
             {
-                var imagePath = selectedBuyer.DealerImage ?? Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "EmpireIcon_quest.png");
+                var imagePath = selectedBuyer.Image ?? Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "EmpireIcon_quest.png");
                 UIFactory.SetIcon(ImageUtils.LoadImage(imagePath), managementDetailPanel.transform);
                 var icon = managementDetailPanel.transform.GetComponentInChildren<Image>();
                 if (icon != null)
                     icon.GetComponent<RectTransform>().sizeDelta = new Vector2(127, 127);
-                content = $"<b>Reputation:</b> {selectedBuyer._DealerData.Reputation}";
+                content = $"<b>Reputation:</b> {selectedBuyer.DealerSaveData.Reputation}";
                 if (selectedBuyer.DealDays != null && selectedBuyer.DealDays.Count > 0)
                 {
                     string daysStr = string.Join(", ", selectedBuyer.DealDays);
@@ -385,15 +393,15 @@ namespace Empire
                 var pendingBuyers = Contacts.Buyers.Values
                     .Where(b => !b.IsInitialized &&
                                 b.UnlockRequirements != null &&
-                                b.UnlockRequirements.Any(r => r.Name == selectedBuyer.DealerName && r.MinRep > selectedBuyer._DealerData.Reputation))
+                                b.UnlockRequirements.Any(r => r.Name == selectedBuyer.DisplayName && r.MinRep > selectedBuyer.DealerSaveData.Reputation))
                     .ToList();
                 if (pendingBuyers.Count > 0)
                 {
                     content += "\n\n<b>Pending Unlocks:</b>\n";
                     foreach (var buyer in pendingBuyers)
                     {
-                        var req = buyer.UnlockRequirements.FirstOrDefault(r => r.Name == selectedBuyer.DealerName && r.MinRep > selectedBuyer._DealerData.Reputation);
-                        content += $"• {buyer.DealerName}: Requires Rep {req?.MinRep}\n";
+                        var req = buyer.UnlockRequirements.FirstOrDefault(r => r.Name == selectedBuyer.DisplayName && r.MinRep > selectedBuyer.DealerSaveData.Reputation);
+                        content += $"• {buyer.DisplayName}: Requires Rep {req?.MinRep}\n";
                     }
                 }
                 UIFactory.Text("DetailText", content, managementDetailPanel.transform, 18);
@@ -405,13 +413,13 @@ namespace Empire
             }
             else if (tab == "Shipping")
             {
-                int currentTier = selectedBuyer._DealerData.ShippingTier;
+                int currentTier = selectedBuyer.DealerSaveData.ShippingTier;
                 string currentShipping = "";
                 string nextShipping = "";
                 double logResult = 0d;
                 if (selectedBuyer.RepLogBase > 1)
                 {
-                    logResult = Math.Log((double)selectedBuyer._DealerData.Reputation + 1, (double)selectedBuyer.RepLogBase);
+                    logResult = Math.Log((double)selectedBuyer.DealerSaveData.Reputation + 1, (double)selectedBuyer.RepLogBase);
                     if (logResult < 4) logResult = 0;
                     else logResult = logResult - 4;
                 }
@@ -466,7 +474,7 @@ namespace Empire
                             MelonCoroutines.Start(BlinkMessage(error));
                             return;
                         }
-                        if (selectedBuyer._DealerData.Reputation < nextTierData.UnlockRep)
+                        if (selectedBuyer.DealerSaveData.Reputation < nextTierData.UnlockRep)
                         {
                             var error = UIFactory.Text("UpgradeErrorText", "<color=#FF0000>Not enough reputation (required: " + nextTierData.UnlockRep + ").</color>", GetMessageParent(), 18);
                             MelonCoroutines.Start(BlinkMessage(error));
@@ -515,7 +523,7 @@ namespace Empire
 
                     // Refresh source data and re-resolve selectedBuyer to the possibly updated instance
                     Contacts.Update();
-                    if (Contacts.Buyers.TryGetValue(capturedBuyer.DealerName, out var updated) && updated.IsInitialized)
+                    if (Contacts.Buyers.TryGetValue(capturedBuyer.DisplayName, out var updated) && updated.IsInitialized)
                         selectedBuyer = updated;
                     else
                         selectedBuyer = capturedBuyer;
@@ -553,7 +561,7 @@ namespace Empire
                         MelonCoroutines.Start(BlinkMessage(error));
                         return;
                     }
-                    if (capturedBuyer.Reward?.unlockRep > 0 && capturedBuyer._DealerData.Reputation < capturedBuyer.Reward.unlockRep)
+                    if (capturedBuyer.Reward?.unlockRep > 0 && capturedBuyer.DealerSaveData.Reputation < capturedBuyer.Reward.unlockRep)
                     {
                         var error = UIFactory.Text("RewardResultText", $"<color=#FF0000>Insufficient reputation. Required: {capturedBuyer.Reward.unlockRep}</color>", GetMessageParent(), 18);
                         MelonCoroutines.Start(BlinkMessage(error));
@@ -565,7 +573,7 @@ namespace Empire
                     MelonCoroutines.Start(BlinkMessage(success));
 
                     Contacts.Update();
-                    if (Contacts.Buyers.TryGetValue(capturedBuyer.DealerName, out var updatedAfterReward) && updatedAfterReward.IsInitialized)
+                    if (Contacts.Buyers.TryGetValue(capturedBuyer.DealerId, out var updatedAfterReward) && updatedAfterReward.IsInitialized)
                         selectedBuyer = updatedAfterReward;
                     else
                         selectedBuyer = capturedBuyer;
@@ -575,7 +583,7 @@ namespace Empire
             }
             else if (tab == "Debt")
             {
-                if (selectedBuyer.Debt == null || selectedBuyer._DealerData.DebtRemaining <= 0)
+                if (selectedBuyer.Debt == null || selectedBuyer.DealerSaveData.DebtRemaining <= 0)
                 {
                     UIFactory.Text("NoDebtText", "No outstanding debt with this contact.", managementDetailPanel.transform, 18);
                 }
@@ -584,14 +592,14 @@ namespace Empire
                     int elapsedDays = TimeManager.ElapsedDays;
                     int nextPaymentDay = (int)Math.Ceiling((elapsedDays + 1) / 7.0) * 7;
                     float weeklyPayment = selectedBuyer.Debt.DayMultiple * (float)Math.Pow(nextPaymentDay, selectedBuyer.Debt.DayExponent);
-                    weeklyPayment -= selectedBuyer._DealerData.DebtPaidThisWeek;
+                    weeklyPayment -= selectedBuyer.DealerSaveData.DebtPaidThisWeek;
                     if (weeklyPayment < 0) weeklyPayment = 0;
-                    weeklyPayment = Mathf.Min(weeklyPayment, selectedBuyer._DealerData.DebtRemaining);
+                    weeklyPayment = Mathf.Min(weeklyPayment, selectedBuyer.DealerSaveData.DebtRemaining);
 
-                    string debtInfo = $"<b><color=#FF6347>Total Debt:</color></b> <color=#FFFFFF>${selectedBuyer._DealerData.DebtRemaining:N0}</color>\n" +
+                    string debtInfo = $"<b><color=#FF6347>Total Debt:</color></b> <color=#FFFFFF>${selectedBuyer.DealerSaveData.DebtRemaining:N0}</color>\n" +
                                       $"<b><color=#FFA500>Next Weekly Payment:</color></b> <color=#FFFFFF>${weeklyPayment:N0}</color>\n" +
                                       $"<b><color=#FFA500>Interest Rate:</color></b> <color=#FFFFFF>{selectedBuyer.Debt.InterestRate:P1}</color>\n" +
-                                      $"<b><color=#00FF00>Paid This Week:</color></b> <color=#FFFFFF>${selectedBuyer._DealerData.DebtPaidThisWeek:N0}</color>";
+                                      $"<b><color=#00FF00>Paid This Week:</color></b> <color=#FFFFFF>${selectedBuyer.DealerSaveData.DebtPaidThisWeek:N0}</color>";
 
                     UIFactory.Text("DebtInfoText", debtInfo, managementDetailPanel.transform, 18);
 
@@ -599,8 +607,8 @@ namespace Empire
                     var debtBuyer = selectedBuyer;
 
                     // Compute displayed payment amount based on current remaining debt (10% or $1000 min), capped at remaining debt
-                    int displayedPaymentAmount = (int)Mathf.Max(1000f, debtBuyer._DealerData.DebtRemaining * 0.1f);
-                    displayedPaymentAmount = (int)Mathf.Floor(Mathf.Min(displayedPaymentAmount, debtBuyer._DealerData.DebtRemaining));
+                    int displayedPaymentAmount = (int)Mathf.Max(1000f, debtBuyer.DealerSaveData.DebtRemaining * 0.1f);
+                    displayedPaymentAmount = (int)Mathf.Floor(Mathf.Min(displayedPaymentAmount, debtBuyer.DealerSaveData.DebtRemaining));
 
                     var payDebtTuple = UIFactory.RoundedButtonWithLabel("PayDebtButton", $"Pay ${displayedPaymentAmount:N0}", managementDetailPanel.transform, new Color32(0, 123, 255, 255), 220f, 42f, 22, Color.white);
                     ButtonUtils.ClearListeners(payDebtTuple.Item2);
@@ -608,8 +616,8 @@ namespace Empire
                     // Capture buyer for the closure (listener recalculates to ensure correctness at click time)
                     ButtonUtils.AddListener(payDebtTuple.Item2, () =>
                     {
-                        int paymentAmount = (int)Mathf.Max(1000f, debtBuyer._DealerData.DebtRemaining * 0.1f);
-                        paymentAmount = (int)Mathf.Floor(Mathf.Min(paymentAmount, debtBuyer._DealerData.DebtRemaining));
+                        int paymentAmount = (int)Mathf.Max(1000f, debtBuyer.DealerSaveData.DebtRemaining * 0.1f);
+                        paymentAmount = (int)Mathf.Floor(Mathf.Min(paymentAmount, debtBuyer.DealerSaveData.DebtRemaining));
 
                         if (Money.GetCashBalance() < paymentAmount)
                         {
@@ -622,15 +630,15 @@ namespace Empire
                         ConsoleHelper.RunCashCommand(-(int)paymentAmount);
 
                         // Apply payment to the captured buyer
-                        debtBuyer._DealerData.DebtRemaining = (int)(debtBuyer._DealerData.DebtRemaining - paymentAmount);
-                        debtBuyer._DealerData.DebtPaidThisWeek = (int)(debtBuyer._DealerData.DebtPaidThisWeek+paymentAmount);
+                        debtBuyer.DealerSaveData.DebtRemaining = (int)(debtBuyer.DealerSaveData.DebtRemaining - paymentAmount);
+                        debtBuyer.DealerSaveData.DebtPaidThisWeek = (int)(debtBuyer.DealerSaveData.DebtPaidThisWeek+paymentAmount);
 
                         var success = UIFactory.Text("DebtSuccessText", $"<color=#00FF00>Paid ${paymentAmount:N0}.</color>", GetMessageParent(), 18);
                         MelonCoroutines.Start(BlinkMessage(success));
 
                         // Refresh source data and re-resolve selectedBuyer
                         Contacts.Update();
-                        if (Contacts.Buyers.TryGetValue(debtBuyer.DealerName, out var updatedBuyer) && updatedBuyer.IsInitialized)
+                        if (Contacts.Buyers.TryGetValue(debtBuyer.DisplayName, out var updatedBuyer) && updatedBuyer.IsInitialized)
                             selectedBuyer = updatedBuyer;
                         else
                             selectedBuyer = debtBuyer;
@@ -646,7 +654,7 @@ namespace Empire
                     {
                         int fixedPayment = 1000;
                         // Cap the fixed payment to remaining debt
-                        int paymentAmount = (int)Mathf.Floor(Mathf.Min(fixedPayment, debtBuyer._DealerData.DebtRemaining));
+                        int paymentAmount = (int)Mathf.Floor(Mathf.Min(fixedPayment, debtBuyer.DealerSaveData.DebtRemaining));
 
                         if (paymentAmount <= 0)
                         {
@@ -667,15 +675,15 @@ namespace Empire
                         ConsoleHelper.RunCashCommand(-paymentAmount);
 
                         // Apply payment to the captured buyer
-                        debtBuyer._DealerData.DebtRemaining = (int)(debtBuyer._DealerData.DebtRemaining - paymentAmount);
-                        debtBuyer._DealerData.DebtPaidThisWeek = (int)(debtBuyer._DealerData.DebtPaidThisWeek + paymentAmount);
+                        debtBuyer.DealerSaveData.DebtRemaining = (int)(debtBuyer.DealerSaveData.DebtRemaining - paymentAmount);
+                        debtBuyer.DealerSaveData.DebtPaidThisWeek = (int)(debtBuyer.DealerSaveData.DebtPaidThisWeek + paymentAmount);
 
                         var success = UIFactory.Text("DebtThousandSuccessText", $"<color=#00FF00>Paid ${paymentAmount:N0}.</color>", GetMessageParent(), 18);
                         MelonCoroutines.Start(BlinkMessage(success));
 
                         // Refresh source data and re-resolve selectedBuyer
                         Contacts.Update();
-                        if (Contacts.Buyers.TryGetValue(debtBuyer.DealerName, out var updatedBuyer2) && updatedBuyer2.IsInitialized)
+                        if (Contacts.Buyers.TryGetValue(debtBuyer.DisplayName, out var updatedBuyer2) && updatedBuyer2.IsInitialized)
                             selectedBuyer = updatedBuyer2;
                         else
                             selectedBuyer = debtBuyer;
@@ -764,17 +772,17 @@ namespace Empire
                     continue;
                 }
 
-                var dealerSaveData = buyer._DealerData;
+                var dealerSaveData = buyer.DealerSaveData;
                 if (dealerSaveData.ShippingTier < 0 || dealerSaveData.ShippingTier >= buyer.Shippings.Count)
                 {
-                    MelonLogger.Error($"[MyApp] Invalid ShippingTier {dealerSaveData.ShippingTier} for dealer {buyer.DealerName}. Shippings.Count={buyer.Shippings.Count}");
+                    MelonLogger.Error($"[EmpirePhoneApp] Invalid ShippingTier {dealerSaveData.ShippingTier} for dealer {buyer.DisplayName}. Shippings.Count={buyer.Shippings.Count}");
                     continue;
                 }
 
                 var drugTypes = dealerSaveData.UnlockedDrugs.Select(d => d.Type).Distinct().OrderBy(_ => UnityEngine.Random.value).ToArray();
                 if (drugTypes.Any())
                 {
-                    GenerateQuest(buyer, dealerSaveData, drugTypes.First());
+                    GenerateQuest(buyer, drugTypes.First());
                 }
             }
             MelonLogger.Msg($"✅ Total quests loaded: {quests.Count}");
@@ -789,163 +797,290 @@ namespace Empire
             return ((value + roundFactor - 1) / roundFactor) * roundFactor;
         }
 
+		private void GenerateQuest(EmpireNPC buyer, string drugType)
+		{
+			// --- Validate drug availability -----------------------------------------
+			var unlockedDrug = buyer.DealerSaveData.UnlockedDrugs
+				.FirstOrDefault(d => d.Type == drugType);
 
-        private void GenerateQuest(BlackmarketBuyer buyer, DealerSaveData dealerSaveData, string drugType)
-        {
-            var shipping = buyer.Shippings[dealerSaveData.ShippingTier];
-            int minAmount = shipping.MinAmount;
-            int maxAmount = shipping.MaxAmount;
-            double logResult = 0d;
-            if (buyer.RepLogBase > 1)
-            {
-                logResult = Math.Log((double)buyer._DealerData.Reputation + 1, (double)buyer.RepLogBase);
-                if (logResult < 4) logResult = 0;
-                else logResult = logResult - 4;
-            }
-            int steps = (maxAmount - minAmount) / shipping.StepAmount;
-            int randomStep = (steps > 0) ? RandomUtils.RangeInt(0, steps + 1) : 0;
-            randomStep = (int) (randomStep * (1+logResult));
-            int amount = minAmount + randomStep * shipping.StepAmount;
-           
+			if (unlockedDrug == null)
+				return;
 
-            var unlockedDrug = dealerSaveData.UnlockedDrugs.FirstOrDefault(d => d.Type == drugType);
-            if (unlockedDrug == null) return;
+			if (unlockedDrug.Qualities.Count == 0)
+			{
+				MelonLogger.Error(
+					$"[GenerateQuest] No qualities unlocked for '{unlockedDrug.Type}' on dealer '{buyer.DisplayName}'.");
+				return;
+			}
 
-            if (unlockedDrug.Qualities.Count == 0)
-            {
-                MelonLogger.Error($"[GenerateQuest] ERROR: No qualities unlocked for drug '{unlockedDrug.Type}' for dealer '{buyer.DealerName}'.");
-                return;
-            }
+			// --- Builder -------------------------------------------------------------
+			var builder = new QuestBuilder(buyer, unlockedDrug);
 
-            var randomQuality = unlockedDrug.Qualities[RandomUtils.RangeInt(0, unlockedDrug.Qualities.Count)];
-            var qualityKey = randomQuality.Type.Trim();
-            float qualityMult = randomQuality.DollarMult + (JSONDeserializer.QualitiesDollarMult.ContainsKey(qualityKey) ? JSONDeserializer.QualitiesDollarMult[qualityKey] : 0f);
+			// --- Amount --------------------------------------------------------------
+			int amount = builder.CalculateAmount();
 
-            var necessaryEffects = new List<string>();
-            var necessaryEffectMult = new List<float>();
-            var optionalEffects = new List<string>();
-            var optionalEffectMult = new List<float>();
+			// --- Quality -------------------------------------------------------------
+			var (qualityName, qualityMult, qualityColor) = builder.SelectQuality();
 
-            var randomNum1 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[0], JSONDeserializer.RandomNumberRanges[1]);
-            float tempMult11 = 1f;
-            float tempMult21 = 1f;
+			// --- Random numbers ------------------------------------------------------
+			float randomNum1 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[0], JSONDeserializer.RandomNumberRanges[1]);
+			float randomNum2 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[2], JSONDeserializer.RandomNumberRanges[3]);
+			float randomNum3 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[4], JSONDeserializer.RandomNumberRanges[5]);
+			float randomNum4 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[6], JSONDeserializer.RandomNumberRanges[7]);
 
-            foreach (var effect in unlockedDrug.Effects)
-            {
-                bool isNecessary = effect.Probability > 1f && UnityEngine.Random.Range(0f, 1f) < (effect.Probability - 1f) && !JSONDeserializer.dealerData.NoNecessaryEffects;
-                bool isOptional = (effect.Probability > 0f && effect.Probability <= 1f && UnityEngine.Random.Range(0f, 1f) < effect.Probability) || JSONDeserializer.dealerData.NoNecessaryEffects;
+			// --- Effects -------------------------------------------------------------
+			var (necessary, necessaryMult, optional, optionalMult, temp11, temp21)
+				= builder.SelectEffects(randomNum1);
 
-                if (isNecessary || isOptional)
-                {
-                    string effectName = effect.Name;
-                    if (effect.Name == "Random")
-                    {
-                        effectName = JSONDeserializer.dealerData.EffectsName
-                            .Where(name => name != "Random" && !necessaryEffects.Contains(name.Trim().ToLowerInvariant()) && !optionalEffects.Contains(name.Trim().ToLowerInvariant()))
-                            .OrderBy(_ => UnityEngine.Random.value)
-                            .FirstOrDefault();
-                    }
-                    if (string.IsNullOrEmpty(effectName)) continue;
+			// --- Deal time -----------------------------------------------------------
+			int idx = UnityEngine.Random.Range(0, buyer.Deals.Count);
+			var shipping = buyer.Shippings[buyer.DealerSaveData.ShippingTier];
 
-                    var effectKey = effectName.Trim().ToLowerInvariant();
-                    float effectDollarMult = effect.DollarMult + (JSONDeserializer.EffectsDollarMult.ContainsKey(effectKey) ? JSONDeserializer.EffectsDollarMult[effectKey] : 0f);
+			int dealTime = (int)(buyer.Deals[idx][0] * shipping.DealModifier[0]);
+			float dealTimeMult = (float)(buyer.Deals[idx][1] * shipping.DealModifier[1]);
 
-                    if (isNecessary)
-                    {
-                        necessaryEffects.Add(effectKey);
-                        necessaryEffectMult.Add(effectDollarMult * randomNum1);
-                        tempMult11 += effectDollarMult * randomNum1;
-                        tempMult21 += effectDollarMult * randomNum1;
-                    }
-                    else if (isOptional)
-                    {
-                        optionalEffects.Add(effectKey);
-                        optionalEffectMult.Add(effectDollarMult * randomNum1);
-                        tempMult21 += effectDollarMult * randomNum1;
-                    }
-                }
-            }
+			// --- Aggregate multipliers ----------------------------------------------
+			float aggMin = (1 + qualityMult) * temp11 * dealTimeMult * randomNum4;
+			float aggMax = (1 + qualityMult) * temp21 * dealTimeMult * randomNum4;
+
+			// --- Effect description --------------------------------------------------
+			string effectDesc = BuildEffectDescription(necessary, optional);
+
+			// --- Dialogue index ------------------------------------------------------
+			int dialogueIndex = RandomUtils.RangeInt(0, buyer.Dialogue.DealStart.Count);
+
+			// --- Create quest --------------------------------------------------------
+			var quest = new QuestData
+			{
+				Title = $"{buyer.DisplayName} wants {drugType} delivered.",
+				Task =
+					$"Deliver <color=#FF0004>{amount}x</color> " +
+					$"<color={qualityColor}>{qualityName}</color> " +
+					$"<color=#FF0004>{drugType}</color> " +
+					$"with effects: {effectDesc}",
+
+				ProductID = drugType,
+				AmountRequired = (uint)amount,
+				DealerName = buyer.DisplayName,
+				QuestImage = buyer.Image,
+
+				BaseDollar = RoundToHalfMSD((int)(unlockedDrug.BaseDollar * amount / randomNum4)),
+				BaseRep = RoundToHalfMSD((int)(unlockedDrug.BaseRep * randomNum2)),
+				BaseXp = RoundToHalfMSD((int)(unlockedDrug.BaseXp * randomNum3)),
+
+				RepMult = unlockedDrug.RepMult * randomNum2,
+				XpMult = unlockedDrug.XpMult * randomNum3,
+
+				DollarMultiplierMin = (float)Math.Round(aggMin, 2),
+				DollarMultiplierMax = (float)Math.Round(aggMax, 2),
+
+				DealTime = dealTime,
+				DealTimeMult = dealTimeMult * randomNum4,
+
+				Penalties = new List<int>
+		        {
+			        RoundToHalfMSD((int)(buyer.Deals[idx][2] * shipping.DealModifier[2] * randomNum1)),
+			        RoundToHalfMSD((int)(buyer.Deals[idx][3] * shipping.DealModifier[3] * randomNum2))
+		        },
+
+				Quality = qualityName,
+				QualityMult = qualityMult,
+
+				NecessaryEffects = necessary,
+				NecessaryEffectMult = necessaryMult,
+				OptionalEffects = optional,
+				OptionalEffectMult = optionalMult,
+
+				Index = Index++,
+				DialogueIndex = dialogueIndex
+			};
+
+			quests.Add(quest);
+		}
+
+		private string BuildEffectDescription(List<string> necessary, List<string> optional)
+		{
+			var sb = new System.Text.StringBuilder();
+
+			// Necessary effects = red
+			if (necessary.Count > 0)
+			{
+				var colored = necessary.Select(e =>
+					$"<color=#FF0004>{e}</color>");
+				sb.Append($"Required: {string.Join(", ", colored)}");
+			}
+
+			// Optional effects = cyan
+			if (optional.Count > 0)
+			{
+				if (sb.Length > 0)
+					sb.Append("; ");
+
+				var colored = optional.Select(e =>
+					$"<color=#00FFFF>{e}</color>");
+				sb.Append($"Optional: {string.Join(", ", colored)}");
+			}
+
+			return sb.Length == 0 ? "none" : sb.ToString();
+		}
 
 
-            var randomIndex = UnityEngine.Random.Range(0, buyer.Deals.Count);
-            int dealTime = (int)(buyer.Deals[randomIndex][0] * shipping.DealModifier[0]);
-            float dealTimesMult = (float)(buyer.Deals[randomIndex][1] * shipping.DealModifier[1]);
+		//private void GenerateQuest(EmpireNPC buyer, string drugType)
+		//{
+		//    var shipping = buyer.Shippings[buyer.DealerSaveData.ShippingTier];
+		//    int minAmount = shipping.MinAmount;
+		//    int maxAmount = shipping.MaxAmount;
+		//    double logResult = 0d;
+		//    if (buyer.RepLogBase > 1)
+		//    {
+		//        logResult = Math.Log((double)buyer.DealerSaveData.Reputation + 1, (double)buyer.RepLogBase);
+		//        if (logResult < 4) logResult = 0;
+		//        else logResult = logResult - 4;
+		//    }
+		//    int steps = (maxAmount - minAmount) / shipping.StepAmount;
+		//    int randomStep = (steps > 0) ? RandomUtils.RangeInt(0, steps + 1) : 0;
+		//    randomStep = (int) (randomStep * (1+logResult));
+		//    int amount = minAmount + randomStep * shipping.StepAmount;
 
-            var randomNum2 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[2], JSONDeserializer.RandomNumberRanges[3]);
-            var randomNum3 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[4], JSONDeserializer.RandomNumberRanges[5]);
-            var randomNum4 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[6], JSONDeserializer.RandomNumberRanges[7]);
 
-            float aggregateDollarMultMin = (1 + qualityMult) * tempMult11 * dealTimesMult * randomNum4;
-            float aggregateDollarMultMax = (1 + qualityMult) * tempMult21 * dealTimesMult * randomNum4;
+		//    var unlockedDrug = buyer.DealerSaveData.UnlockedDrugs.FirstOrDefault(d => d.Type == drugType);
+		//    if (unlockedDrug == null) return;
 
-            //string effectDesc = "";
-            //if (necessaryEffects.Count > 0) effectDesc += $"Required: {string.Join(", ", necessaryEffects)}";
-            //if (optionalEffects.Count > 0) effectDesc += (effectDesc.Length > 0 ? "; " : "") + $"Optional: {string.Join(", ", optionalEffects)}";
+		//    if (unlockedDrug.Qualities.Count == 0)
+		//    {
+		//        MelonLogger.Error($"[GenerateQuest] ERROR: No qualities unlocked for drug '{unlockedDrug.Type}' for dealer '{buyer.DisplayName}'.");
+		//        return;
+		//    }
 
-            // Colorize task components: amount, quality (quality-colors), product, and effects (necessary vs optional)
-            int qualityIndex = -1;
-            try
-            {
-                var qualityTypes = JSONDeserializer.dealerData?.QualityTypes ?? new List<string>();
-                qualityIndex = qualityTypes.FindIndex(q => q?.Trim().ToLowerInvariant() == qualityKey);
-            }
-            catch
-            {
-                qualityIndex = -1;
-            }
+		//    var randomQuality = unlockedDrug.Qualities[RandomUtils.RangeInt(0, unlockedDrug.Qualities.Count)];
+		//    var qualityKey = randomQuality.Type.Trim();
+		//    float qualityMult = randomQuality.DollarMult + (JSONDeserializer.QualitiesDollarMult.ContainsKey(qualityKey) ? JSONDeserializer.QualitiesDollarMult[qualityKey] : 0f);
 
-            string qualityColor = "#FFFFFF";
-            if (qualityIndex >= 0 && QualityColors.Colors != null && qualityIndex < QualityColors.Colors.Length)
-                qualityColor = QualityColors.Colors[qualityIndex];
+		//    var necessaryEffects = new List<string>();
+		//    var necessaryEffectMult = new List<float>();
+		//    var optionalEffects = new List<string>();
+		//    var optionalEffectMult = new List<float>();
 
-            string effectDescColored = "";
-            if (necessaryEffects.Count > 0)
-            {
-                var coloredNecessary = string.Join(", ", necessaryEffects.Select(e => $"<color=#FF0004>{e}</color>"));
-                effectDescColored += $"Required: {coloredNecessary}";
-            }
-            if (optionalEffects.Count > 0)
-            {
-                if (effectDescColored.Length > 0) effectDescColored += "; ";
-                var coloredOptional = string.Join(", ", optionalEffects.Select(e => $"<color=#00FFFF>{e}</color>"));
-                effectDescColored += $"Optional: {coloredOptional}";
-            }
-            if (string.IsNullOrEmpty(effectDescColored)) effectDescColored = "none";
+		//    var randomNum1 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[0], JSONDeserializer.RandomNumberRanges[1]);
+		//    float tempMult11 = 1f;
+		//    float tempMult21 = 1f;
 
-            //create the dialogueIndex as a random index of "DealStart" Dialogues of selected buyer
-            int dialogueIndex = RandomUtils.RangeInt(0, buyer.Dialogues.DealStart.Count);
+		//    foreach (var effect in unlockedDrug.Effects)
+		//    {
+		//        bool isNecessary = effect.Probability > 1f && UnityEngine.Random.Range(0f, 1f) < (effect.Probability - 1f) && !JSONDeserializer.dealerData.NoNecessaryEffects;
+		//        bool isOptional = (effect.Probability > 0f && effect.Probability <= 1f && UnityEngine.Random.Range(0f, 1f) < effect.Probability) || JSONDeserializer.dealerData.NoNecessaryEffects;
 
-            var quest = new QuestData
-            {
-                Title = $"{buyer.DealerName} wants {drugType} delivered.",
-                Task = $"Deliver <color=#FF0004>{amount}x</color> <color={qualityColor}>{qualityKey}</color> <color=#FF0004>{drugType}</color> with effects: {effectDescColored}",
-                ProductID = drugType,
-                AmountRequired = (uint)amount,
-                DealerName = buyer.DealerName,
-                QuestImage = buyer.DealerImage,
-                BaseDollar = RoundToHalfMSD((int)(unlockedDrug.BaseDollar * amount / randomNum4)),
-                BaseRep = RoundToHalfMSD((int)(unlockedDrug.BaseRep * randomNum2)),
-                BaseXp = RoundToHalfMSD((int)(unlockedDrug.BaseXp * randomNum3)),
-                RepMult = unlockedDrug.RepMult * randomNum2,
-                XpMult = unlockedDrug.XpMult * randomNum3,
-                DollarMultiplierMin = (float)Math.Round(aggregateDollarMultMin, 2),
-                DollarMultiplierMax = (float)Math.Round(aggregateDollarMultMax, 2),
-                DealTime = dealTime,
-                DealTimeMult = dealTimesMult * randomNum4,
-                Penalties = new List<int> { RoundToHalfMSD((int)(buyer.Deals[randomIndex][2] * shipping.DealModifier[2] * randomNum1)), RoundToHalfMSD((int)(buyer.Deals[randomIndex][3] * shipping.DealModifier[3] * randomNum2)) },
-                Quality = qualityKey,
-                QualityMult = qualityMult,
-                NecessaryEffects = necessaryEffects,
-                NecessaryEffectMult = necessaryEffectMult,
-                OptionalEffects = optionalEffects,
-                OptionalEffectMult = optionalEffectMult,
-                Index = Index++,
-                DialogueIndex = dialogueIndex
-            };
-            quests.Add(quest);
-        }
+		//        if (isNecessary || isOptional)
+		//        {
+		//            string effectName = effect.Name;
+		//            if (effect.Name == "Random")
+		//            {
+		//                effectName = JSONDeserializer.dealerData.EffectsName
+		//                    .Where(name => name != "Random" && !necessaryEffects.Contains(name.Trim().ToLowerInvariant()) && !optionalEffects.Contains(name.Trim().ToLowerInvariant()))
+		//                    .OrderBy(_ => UnityEngine.Random.value)
+		//                    .FirstOrDefault();
+		//            }
+		//            if (string.IsNullOrEmpty(effectName)) continue;
 
-        private void CancelCurrentQuest(QuestData quest)
+		//            var effectKey = effectName.Trim().ToLowerInvariant();
+		//            float effectDollarMult = effect.DollarMult + (JSONDeserializer.EffectsDollarMult.ContainsKey(effectKey) ? JSONDeserializer.EffectsDollarMult[effectKey] : 0f);
+
+		//            if (isNecessary)
+		//            {
+		//                necessaryEffects.Add(effectKey);
+		//                necessaryEffectMult.Add(effectDollarMult * randomNum1);
+		//                tempMult11 += effectDollarMult * randomNum1;
+		//                tempMult21 += effectDollarMult * randomNum1;
+		//            }
+		//            else if (isOptional)
+		//            {
+		//                optionalEffects.Add(effectKey);
+		//                optionalEffectMult.Add(effectDollarMult * randomNum1);
+		//                tempMult21 += effectDollarMult * randomNum1;
+		//            }
+		//        }
+		//    }
+
+
+		//    var randomIndex = UnityEngine.Random.Range(0, buyer.Deals.Count);
+		//    int dealTime = (int)(buyer.Deals[randomIndex][0] * shipping.DealModifier[0]);
+		//    float dealTimesMult = (float)(buyer.Deals[randomIndex][1] * shipping.DealModifier[1]);
+
+		//    var randomNum2 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[2], JSONDeserializer.RandomNumberRanges[3]);
+		//    var randomNum3 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[4], JSONDeserializer.RandomNumberRanges[5]);
+		//    var randomNum4 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[6], JSONDeserializer.RandomNumberRanges[7]);
+
+		//    float aggregateDollarMultMin = (1 + qualityMult) * tempMult11 * dealTimesMult * randomNum4;
+		//    float aggregateDollarMultMax = (1 + qualityMult) * tempMult21 * dealTimesMult * randomNum4;
+
+		//    //string effectDesc = "";
+		//    //if (necessaryEffects.Count > 0) effectDesc += $"Required: {string.Join(", ", necessaryEffects)}";
+		//    //if (optionalEffects.Count > 0) effectDesc += (effectDesc.Length > 0 ? "; " : "") + $"Optional: {string.Join(", ", optionalEffects)}";
+
+		//    // Colorize task components: amount, quality (quality-colors), product, and effects (necessary vs optional)
+		//    int qualityIndex = -1;
+		//    try
+		//    {
+		//        var qualityTypes = JSONDeserializer.dealerData?.QualityTypes ?? new List<string>();
+		//        qualityIndex = qualityTypes.FindIndex(q => q?.Trim().ToLowerInvariant() == qualityKey);
+		//    }
+		//    catch
+		//    {
+		//        qualityIndex = -1;
+		//    }
+
+		//    string qualityColor = "#FFFFFF";
+		//    if (qualityIndex >= 0 && QualityColors.Colors != null && qualityIndex < QualityColors.Colors.Length)
+		//        qualityColor = QualityColors.Colors[qualityIndex];
+
+		//    string effectDescColored = "";
+		//    if (necessaryEffects.Count > 0)
+		//    {
+		//        var coloredNecessary = string.Join(", ", necessaryEffects.Select(e => $"<color=#FF0004>{e}</color>"));
+		//        effectDescColored += $"Required: {coloredNecessary}";
+		//    }
+		//    if (optionalEffects.Count > 0)
+		//    {
+		//        if (effectDescColored.Length > 0) effectDescColored += "; ";
+		//        var coloredOptional = string.Join(", ", optionalEffects.Select(e => $"<color=#00FFFF>{e}</color>"));
+		//        effectDescColored += $"Optional: {coloredOptional}";
+		//    }
+		//    if (string.IsNullOrEmpty(effectDescColored)) effectDescColored = "none";
+
+		//    //create the dialogueIndex as a random index of "DealStart" Dialogues of selected buyer
+		//    int dialogueIndex = RandomUtils.RangeInt(0, buyer.Dialogue.DealStart.Count);
+
+		//    var quest = new QuestData
+		//    {
+		//        Title = $"{buyer.DisplayName} wants {drugType} delivered.",
+		//        Task = $"Deliver <color=#FF0004>{amount}x</color> <color={qualityColor}>{qualityKey}</color> <color=#FF0004>{drugType}</color> with effects: {effectDescColored}",
+		//        ProductID = drugType,
+		//        AmountRequired = (uint)amount,
+		//        DealerName = buyer.DisplayName,
+		//        QuestImage = buyer.Image,
+		//        BaseDollar = RoundToHalfMSD((int)(unlockedDrug.BaseDollar * amount / randomNum4)),
+		//        BaseRep = RoundToHalfMSD((int)(unlockedDrug.BaseRep * randomNum2)),
+		//        BaseXp = RoundToHalfMSD((int)(unlockedDrug.BaseXp * randomNum3)),
+		//        RepMult = unlockedDrug.RepMult * randomNum2,
+		//        XpMult = unlockedDrug.XpMult * randomNum3,
+		//        DollarMultiplierMin = (float)Math.Round(aggregateDollarMultMin, 2),
+		//        DollarMultiplierMax = (float)Math.Round(aggregateDollarMultMax, 2),
+		//        DealTime = dealTime,
+		//        DealTimeMult = dealTimesMult * randomNum4,
+		//        Penalties = new List<int> { RoundToHalfMSD((int)(buyer.Deals[randomIndex][2] * shipping.DealModifier[2] * randomNum1)), RoundToHalfMSD((int)(buyer.Deals[randomIndex][3] * shipping.DealModifier[3] * randomNum2)) },
+		//        Quality = qualityKey,
+		//        QualityMult = qualityMult,
+		//        NecessaryEffects = necessaryEffects,
+		//        NecessaryEffectMult = necessaryEffectMult,
+		//        OptionalEffects = optionalEffects,
+		//        OptionalEffectMult = optionalEffectMult,
+		//        Index = Index++,
+		//        DialogueIndex = dialogueIndex
+		//    };
+		//    quests.Add(quest);
+		//}
+
+		private void CancelCurrentQuest(QuestData quest)
         {
             var active = QuestDelivery.Active;
             if (active == null) return;
@@ -962,6 +1097,7 @@ namespace Empire
                 MelonLogger.Error($"❌ CancelCurrentQuest() exception: {ex}");
             }
         }
+
         private void RefreshQuestList()
         {
             ClearChildren(questListContainer);
@@ -979,7 +1115,7 @@ namespace Empire
                 if (questIcon != null) questIcon.GetComponent<RectTransform>().sizeDelta = new Vector2(128, 128);
 
                 // Apply highlight if this quest's buyer is the selected one
-                if (selectedBuyer != null && quest.DealerName == selectedBuyer.DealerName)
+                if (selectedBuyer != null && quest.DealerName == selectedBuyer.DisplayName)
                 {
                     row.GetComponent<Image>().color = Color.black;
                 }
@@ -1001,13 +1137,13 @@ namespace Empire
 
             foreach (var buyer in buyers)
             {
-                var row = UIFactory.CreateQuestRow(buyer.DealerName, container, out var iconPanel, out var textPanel);
+                var row = UIFactory.CreateQuestRow(buyer.DisplayName, container, out var iconPanel, out var textPanel);
                 var rowImage = row.GetComponent<Image>();
 
                 // Set row background color based on selection
-                rowImage.color = (selectedBuyer != null && selectedBuyer.DealerName == buyer.DealerName) ? Color.black : defaultColor;
+                rowImage.color = (selectedBuyer != null && selectedBuyer.DisplayName == buyer.DisplayName) ? Color.black : defaultColor;
 
-                var image = ImageUtils.LoadImage(Path.Combine(MelonEnvironment.ModsDirectory, "Empire", buyer.DealerImage ?? "EmpireIcon_quest.png"));
+                var image = ImageUtils.LoadImage(Path.Combine(MelonEnvironment.ModsDirectory, "Empire", buyer.Image ?? "EmpireIcon_quest.png"));
                 UIFactory.SetIcon(image, iconPanel.transform);
 
                 ButtonUtils.AddListener(row.GetComponent<Button>(), () =>
@@ -1017,7 +1153,7 @@ namespace Empire
                     // The list is repopulated inside UpdateBuyerDetails, which will handle the color update.
                 });
 
-                UIFactory.CreateTextBlock(textPanel.transform, buyer.DealerName, "", false);
+                UIFactory.CreateTextBlock(textPanel.transform, buyer.DisplayName, "", false);
             }
         }
 
@@ -1111,7 +1247,5 @@ namespace Empire
             acceptButton.interactable = false;
             ButtonUtils.Enable(cancelButton, cancelLabel, "Cancel Current Delivery");
         }
-
     }
-
 }
