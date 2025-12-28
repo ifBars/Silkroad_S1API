@@ -1,6 +1,117 @@
+###############################
+# Visual Studio / C# / .NET
+###############################
+
+# Build results
 bin/
 obj/
-/packages/
-riderModule.iml
-/_ReSharper.Caches/
-**/.vs/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+
+# VS cache
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+*.nuget.props
+*.nuget.targets
+
+# Rider / JetBrains
+.idea/
+*.DotSettings.user
+
+# Generated files
+*.cache
+*.db
+*.db-shm
+*.db-wal
+
+###############################
+# Unity (if you ever open the project in Unity)
+###############################
+
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+MemoryCaptures/
+UserSettings/
+UnityGenerated/
+
+# Unity auto-generated meta files
+*.pidb
+*.booproj
+*.svd
+
+# Crash reports
+sysinfo.txt
+
+###############################
+# MelonLoader / Game Modding
+###############################
+
+# MelonLoader generated files
+MelonLoader/
+UserData/
+Plugins/
+Mods/Config/
+Mods/Logs/
+Mods/Cache/
+
+# Empire-specific runtime files
+Empire/Cache/
+Empire/Logs/
+Empire/Temp/
+Empire/Generated/
+
+# Ignore compiled mod DLLs (you commit source, not builds)
+*.dll
+*.pdb
+
+# But allow your mod icon / assets
+!EmpireIcon.png
+!EmpireIcon_quest.png
+
+###############################
+# OS-specific
+###############################
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+###############################
+# Misc
+###############################
+
+# Logs
+*.log
+
+# Archives
+*.zip
+*.7z
+*.rar
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.old
+
+# VSCode
+.vscode/
