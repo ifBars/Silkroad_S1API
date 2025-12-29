@@ -23,6 +23,8 @@ using Empire.NPC;
 using Empire.NPC.S1API_NPCs;
 using Empire.Quest.Data;
 using S1Quest = S1API.Quests.Quest;
+using Empire.Utilities.QualityHelpers;
+using Empire.Utilities;
 
 namespace Empire.Quest
 {
@@ -30,6 +32,7 @@ namespace Empire.Quest
 	{
         [SaveableField("DeliveryData")]
         public DeliverySaveData Data = new DeliverySaveData();
+
         public EmpireNPC buyer;
         private DeadDropInstance deliveryDrop;
         private StorageInstance? subscribedStorage;
@@ -97,8 +100,10 @@ namespace Empire.Quest
             get
             {
                 //Use static image setting from PhoneApp Accept Quest
-                return ImageUtils.LoadImage(Data.QuestImage ?? Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "EmpireIcon_quest.png"));
-            }
+                //return ImageUtils.LoadImage(Data.QuestImage ?? Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "EmpireIcon_quest.png"));
+				return EmpireResourceLoader.LoadEmbeddedIcon(Data.QuestImage ?? "EmpireIcon_quest.png");
+
+			}
         }
 
         protected override void OnLoaded()
@@ -374,34 +379,33 @@ namespace Empire.Quest
                 return null;
             }
         }
-        //A method that checks type of a product quality. return quality number. Takes arg as Data.quality string and returns Contacts.QualitiesDollarMult index where the key is the quality string.
-        //TODO - UPDATABLE
-        private int GetQualityNumber(string quality)
-        {
-            // Check if the quality is null or empty
-            if (string.IsNullOrEmpty(quality))
-            {
-                MelonLogger.Error("❌ Quality is null or empty.");
-                return -1;
-            }
-            // Check if the quality exists in the dictionary
-            if (!JSONDeserializer.QualitiesDollarMult.ContainsKey(quality.ToLower().Trim()))
-            {
-                MelonLogger.Error($"❌ Quality not found: {quality}");
-                return -1;
-            }
-            //Iterate the dictionary and return index where the key is the quality string
-            for (int i = 0; i < JSONDeserializer.QualitiesDollarMult.Count; i++)
-            {
-                if (JSONDeserializer.QualitiesDollarMult.ElementAt(i).Key == quality.ToLower().Trim())
-                {
-                    return i;
-                }
-            }
-            return -1;
-        }
 
-        private void UpdateReward(uint total, ProductDefinition? productDef, List<string> properties)
+		//A method that checks type of a product quality. return quality number. Takes arg as Data.quality string and returns Contacts.QualitiesDollarMult index where the key is the quality string.
+		//TODO - UPDATABLE
+		private int GetQualityNumber(string quality)
+		{
+			if (string.IsNullOrWhiteSpace(quality))
+			{
+				MelonLogger.Error("❌ Quality is null or empty.");
+				return -1;
+			}
+
+			// Normalize input
+			string key = quality.Trim();
+
+			// Try lookup in registry
+			if (!QualityRegistry.ByName.TryGetValue(key, out var info))
+			{
+				MelonLogger.Error($"❌ Quality not found: {quality}");
+				return -1;
+			}
+
+			// Return index in the ordered list
+			return QualityRegistry.Qualities.IndexOf(info);
+		}
+
+
+		private void UpdateReward(uint total, ProductDefinition? productDef, List<string> properties)
         {
             // Check if productDef is null or not a ProductDefinition
             if (productDef == null)

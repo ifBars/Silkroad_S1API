@@ -5,8 +5,8 @@
 
     <!-- General properties -->
     <PropertyGroup>
-        <TargetFramework>.netstandard2.1</TargetFramework>
-        <Authors>Aracor</Authors>
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<Authors>Aracor</Authors>
         <PackageId>Empire</PackageId>
         <Description>A Schedule One NPC Framework</Description>
         <RepositoryUrl>https://github.com/pranjalchakraborty/Silkroad_S1API.git</RepositoryUrl>
@@ -117,7 +117,7 @@
            <HintPath>$(MelonLoaderAssembliesPath)\0Harmony.dll</HintPath>
        </Reference>
        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-       <PackageReference Include="LavaGang.MelonLoader" Version="0.7.1" />
+       <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
        <PackageReference Include="S1API.Forked" Version="2.8.5" />
        
 
@@ -132,19 +132,23 @@
 	</ItemGroup>
 
 
-	<!-- Automated local deployment -->
+	<!-- Automated local deployment 
     <Target Name="PostBuildMono" AfterTargets="Build" Condition=" '$(AutomateLocalDeployment)' == 'true' and '$(Configuration)' == 'Mono' ">
         <Copy SourceFiles=".\bin\Mono\.netstandard2.1\Empire-S1API.dll" DestinationFiles="$(LocalMonoDeploymentPath)\Mods\Empire.dll" />
 		<Copy SourceFiles=".\References\empire.json" DestinationFiles="$(LocalMonoDeploymentPath)\Mods\Empire\empire.json" />
 		<Copy SourceFiles=".\bin\Mono\.netstandard2.1\Empire-S1API.dll" DestinationFiles="..\Mods\Empire.dll" />
 		<Copy SourceFiles=".\References\empire.json" DestinationFiles="..\Mods\Empire\empire.json" />
-    </Target>
-	
-	<!-- Automated local deployment -->
+    </Target>-->
+
+	<!-- Automated local deployment 
 	<Target Name="PostBuildIl2Cpp" AfterTargets="Build" Condition=" '$(AutomateLocalDeployment)' == 'true' and '$(Configuration)' == 'Il2Cpp' ">
 		<Copy SourceFiles=".\bin\Il2Cpp\.netstandard2.1\Empire-S1API.dll" DestinationFiles="$(LocalIl2CppDeploymentPath)\Mods\Empire.dll" />
 		<Copy SourceFiles=".\References\empire.json" DestinationFiles="$(LocalIl2CppDeploymentPath)\Mods\Empire\empire.json" />
 		<Copy SourceFiles=".\bin\Il2Cpp\.netstandard2.1\Empire-S1API.dll" DestinationFiles="..\Mods\Empire.dll" />
 		<Copy SourceFiles=".\References\empire.json" DestinationFiles="..\Mods\Empire\empire.json" />
+	</Target>-->
+
+	<Target Name="PostBuild" AfterTargets="Build">
+		<Copy SourceFiles="$(TargetDir)Empire-S1API.dll" DestinationFolder="C:\Program Files (x86)\Steam\steamapps\common\Schedule I_MONO\Mods\" />
 	</Target>
 </Project>

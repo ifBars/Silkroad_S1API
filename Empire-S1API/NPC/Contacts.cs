@@ -13,7 +13,6 @@ namespace Empire.NPC
         public static Dictionary<string, EmpireNPC> Buyers { get; set; } = new Dictionary<string, EmpireNPC>(); // Key: DealerId, Value: EmpireNPC Buyer
 		public static Dictionary<string, EmpireNPC> BuyersByDisplayName { get; set; } = new Dictionary<string, EmpireNPC>(); // Key: DealerId, Value: EmpireNPC Buyer
 		public static bool IsInitialized { get; set; } = false;
-        public static bool IsUnlocked { get; set; } = false;
         //public static BlackmarketBuyer saveBuyer { get; set; }
         public static Dealer standardDealer { get; set; } = new Dealer { Name = "Blackmarket Buyer", Image = "EmpireIcon_quest.png" };
         private static bool _isUpdateCoroutineRunning = false;
@@ -24,25 +23,52 @@ namespace Empire.NPC
 	        .Where(t => t.IsSubclassOf(typeof(EmpireNPC)) && !t.IsAbstract)
 	        .ToList();
 
-        public static void RegisterEmpireNPC(EmpireNPC npc)
-        {
-            Buyers[npc.DealerId] = npc; // Use indexer to add or update
-            BuyersByDisplayName[npc.DisplayName] = npc;
-
-			MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}");
-
-            if (!Buyers.ContainsKey(npc.DealerId))
+		public static void RegisterEmpireNPC(EmpireNPC npc)
+		{
+            if (AllEmpireNPCs == null)
             {
-                if (!Buyers.TryAdd(npc.DealerId, npc))
-                    MelonLogger.Msg($"❌ Failed to add Empire NPC: {npc.DealerId} to Buyers dictionary.");
-                else
-                    MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}");
+                MelonLogger.Error("❌ AllEmpireNPCs is null.");
             }
             else
             {
-                MelonLogger.Warning($"⚠️ Empire NPC already registered: {npc.DealerId}");
+                MelonLogger.Msg($"AllEmpireNPCs count: {AllEmpireNPCs.Count}");
             }
-        }
+
+			if (npc == null)
+			{
+				MelonLogger.Error("❌ Attempted to register a null EmpireNPC.");
+				return;
+			}
+
+			if (string.IsNullOrEmpty(npc.DealerId))
+			{
+				MelonLogger.Error("❌ EmpireNPC has no DealerId.");
+				return;
+			}
+
+			// Prevent duplicate registration
+			if (Buyers.ContainsKey(npc.DealerId))
+			{
+				MelonLogger.Warning($"⚠️ Empire NPC already registered: {npc.DealerId}");
+				return;
+			}
+
+			// Register
+			Buyers[npc.DealerId] = npc;
+			BuyersByDisplayName[npc.DisplayName] = npc;
+            npc.IsInitialized = true;
+
+			MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}; Initialized: {npc.IsInitialized}");
+
+			// Initialization check
+			if (Buyers.Count == AllEmpireNPCs.Count)
+			{
+				IsInitialized = true;
+				MelonLogger.Msg($"🎉 All Empire NPCs registered ({Buyers.Count}/{AllEmpireNPCs.Count}). Initialization complete.");
+                Contacts.Update();
+                MelonLogger.Msg("🔄 Contacts Update called after all NPCs registered.");
+			}
+		}
 
 		public static EmpireNPC? GetBuyer(string dealerName)
         {
@@ -52,42 +78,6 @@ namespace Empire.NPC
             return buyer;
         }
 
-        //GetDealerDataByName
-        public static Dealer? GetDealerDataByName(string dealerName)
-        {
-            //If dealerName is null or empty or not found, return null
-            if (string.IsNullOrEmpty(dealerName))
-            {
-                MelonLogger.Error("❌ dealerName is null or empty.");
-                return null;
-            }
-            var dealer = JSONDeserializer.dealerData.Dealers.FirstOrDefault(d => d.Name == dealerName);
-            if (dealer == null)
-            {
-                MelonLogger.Error($"❌ Dealer not found: {dealerName}");
-            }
-            return dealer;
-        }
-
-        //GetDealerDataByIndex
-        public static Dealer GetDealerDataByIndex(int index)
-        {
-            // Ensure dealer data is loaded
-            if (JSONDeserializer.dealerData.Dealers == null || JSONDeserializer.dealerData.Dealers.Count == 0)
-            {
-                MelonLogger.Warning("⚠️ Dealer data not loaded yet, returning standard dealer");
-                return standardDealer;
-            }
-
-            // If index out of range, return standard dealer
-            if (index < 0 || index >= JSONDeserializer.dealerData.Dealers.Count)
-            {
-                //MelonLogger.Msg($"❌ Index {index} is out of range for dealers (count: {JSONDeserializer.dealerData.Dealers.Count}).");
-                return standardDealer;
-            }
-            return JSONDeserializer.dealerData.Dealers.ElementAtOrDefault(index);
-        }
-
         /// <summary>
         /// Reset Contacts static state between scene loads to avoid leaking over the previous session.
         /// </summary>
@@ -95,7 +85,7 @@ namespace Empire.NPC
         {
             Buyers.Clear();
             IsInitialized = false;
-            IsUnlocked = false;
+            //IsUnlocked = false;
             //BlackmarketBuyer.dealerDataIndex = 0;
             // Reset the dealer field to force re-initialization
             //BlackmarketBuyer.dealer = null;
@@ -113,7 +103,7 @@ namespace Empire.NPC
             }
 
             _isUpdateCoroutineRunning = true;
-            MelonLoader.MelonCoroutines.Start(UpdateCoroutine());
+            MelonCoroutines.Start(UpdateCoroutine());
         }
         
 
@@ -135,48 +125,54 @@ namespace Empire.NPC
                                      buyer.UnlockRequirements.All(req =>
                                          GetBuyer(req.Name)?.DealerSaveData.Reputation >= req.MinRep);
 
-                    ////Log the buyer name and unlock status
-                    MelonLogger.Msg($"Buyer: {buyer.DisplayName}, Unlock Status: {canUnlock}");
+					////Log the buyer name and unlock status
+					MelonLogger.Msg($"Buyer: {buyer.DisplayName}, Unlock Status: {canUnlock}");
                     //If cannot unlock, log the requirements and the current reputation
-                    if (!canUnlock)
-                    {
-                        if (buyer.UnlockRequirements?.Any() == true)
-                        {
-                            foreach (var req in buyer.UnlockRequirements)
-                            {
-                                var unlockBuyer = GetBuyer(req.Name);
-                                if (unlockBuyer != null)
-                                {
-                                    MelonLogger.Msg($"Unlock Requirement: {req.Name}, Current Reputation: {unlockBuyer.DealerSaveData.Reputation}, Required Reputation: {req.MinRep}");
-                                }
-                                else
-                                {
-                                    MelonLogger.Msg($"Unlock Requirement: {req.Name} not found.");
-                                }
-                            }
-                        }
-                    }
+                    //if (!canUnlock)
+                    //{
+                    //    if (buyer.UnlockRequirements?.Any() == true)
+                    //    {
+                    //        foreach (var req in buyer.UnlockRequirements)
+                    //        {
+                    //            var unlockBuyer = GetBuyer(req.Name);
+                    //            if (unlockBuyer != null)
+                    //            {
+                    //                MelonLogger.Msg($"Unlock Requirement: {req.Name}, Current Reputation: {unlockBuyer.DealerSaveData.Reputation}, Required Reputation: {req.MinRep}");
+                    //            }
+                    //            else
+                    //            {
+                    //                MelonLogger.Msg($"Unlock Requirement: {req.Name} not found.");
+                    //            }
+                    //        }
+                    //    }
+                    //}
 
                     if (canUnlock)
                     {
-                        if (!buyer.IsInitialized)
+						MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} unlock requirements met. Initialized: {buyer.IsInitialized}, Unlocked: {buyer.IsUnlocked}, buyer.DealerSaveData.IntroDone: {buyer.DealerSaveData.IntroDone}");
+						if (!buyer.IsUnlocked)
+                        {
+                            buyer.IsUnlocked = true;
+							
+                            if (buyer.DealerSaveData.IntroDone == false) // First time Intro
+							{
+								buyer.SendCustomMessage("Intro");
+								MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} intro sent.");
+								buyer.DealerSaveData.IntroDone = true; // Set IntroDone to true
+							}
+
+							MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} is now unlocked.");
+						}
+
+						if (buyer.Debt != null && buyer.Debt.TotalDebt > 0 && buyer.DealerSaveData.DebtRemaining > 0)
+						{
+							buyer.DebtManager = new DebtManager(buyer);
+							MelonLogger.Msg($"❌ Dealer {buyer.DisplayName} is locked due to debt: {buyer.Debt.TotalDebt}");
+						}
+
+						if (!buyer.IsInitialized)
                         {
                             buyer.IsInitialized = true;
-                            if (buyer.DealerSaveData.IntroDone == false) // First time Intro
-                            {
-                                buyer.SendCustomMessage("Intro");
-                                MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} intro sent.");
-                                buyer.DealerSaveData.IntroDone = true; // Set IntroDone to true
-                            }
-                            
-                            
-                                if (buyer.Debt != null && buyer.Debt.TotalDebt > 0 && buyer.DealerSaveData.DebtRemaining > 0)
-                                {
-                                    buyer.DebtManager = new DebtManager(buyer);
-                                    MelonLogger.Msg($"❌ Dealer {buyer.DisplayName} is locked due to debt: {buyer.Debt.TotalDebt}");
-                                }
-
-                            
                             MelonLogger.Msg($"✅ Initialized dealer: {buyer.DisplayName}");
                         }
                         buyer.UnlockDrug();
@@ -187,7 +183,7 @@ namespace Empire.NPC
                     }
 
                     //MelonLogger.Msg($"✅ Contacts.Buyers now contains {Buyers.Count} buyers.");
-                    IsUnlocked = true;
+                    //IsUnlocked = true;
                 }
 
             }

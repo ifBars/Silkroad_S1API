@@ -3,6 +3,7 @@ using Empire.NPC.Data;
 using Empire.NPC.S1API_NPCs;
 using Empire.Utilities.ListHelpers;
 using Empire.Utilities.QualityHelpers;
+using Empire_S1API.Utilities;
 using S1API.Internal.Utils;
 using System;
 using System.Collections.Generic;
@@ -55,10 +56,11 @@ namespace Empire.Utilities.QuestHelpers
 
 		// --- EFFECT SELECTION ----------------------------------------------------
 
-		public (List<string> necessary, List<float> necessaryMult,
-				List<string> optional, List<float> optionalMult,
-				float tempMult11, float tempMult21)
-			SelectEffects(float randomNum1)
+		public (
+			List<string> necessary, List<float> necessaryMult,
+			List<string> optional, List<float> optionalMult,
+			float tempMult11, float tempMult21
+		) SelectEffects(float randomNum1)
 		{
 			var necessary = new List<string>();
 			var necessaryMult = new List<float>();
@@ -68,22 +70,29 @@ namespace Empire.Utilities.QuestHelpers
 			float temp11 = 1f;
 			float temp21 = 1f;
 
+			bool noNecessary = EmpireConfig.NoNecessaryEffects;
+
 			foreach (var e in unlockedDrug.Effects)
 			{
-				bool isNecessary = e.Probability > 1f &&
-								   UnityEngine.Random.value < (e.Probability - 1f) &&
-								   !JSONDeserializer.dealerData.NoNecessaryEffects;
+				bool isNecessary =
+					e.Probability > 1f &&
+					UnityEngine.Random.value < (e.Probability - 1f) &&
+					!noNecessary;
 
-				bool isOptional = (e.Probability > 0f && e.Probability <= 1f &&
-								   UnityEngine.Random.value < e.Probability) ||
-								   JSONDeserializer.dealerData.NoNecessaryEffects;
+				bool isOptional =
+					(e.Probability > 0f && e.Probability <= 1f &&
+					 UnityEngine.Random.value < e.Probability)
+					|| noNecessary;
 
 				if (!isNecessary && !isOptional)
 					continue;
 
 				string effectName = e.Name;
+
 				if (effectName == "Random")
-					effectName = QualityEffectResolver.ResolveRandomEffectName(necessary.Concat(optional));
+					effectName = QualityEffectResolver.ResolveRandomEffectName(
+						necessary.Concat(optional)
+					);
 
 				if (string.IsNullOrEmpty(effectName))
 					continue;

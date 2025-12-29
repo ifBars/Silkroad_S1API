@@ -1,5 +1,6 @@
 ﻿using Empire.DebtHelpers;
 using Empire.NPC.Data;
+using Empire.NPC.SaveData;
 using Empire.Reward;
 using Empire.Utilities;
 using Empire.Utilities.EffectHelpers;
@@ -20,34 +21,29 @@ namespace Empire.NPC.S1API_NPCs
     {
         public override bool IsPhysical => false;
 		public virtual bool IsInitialized { get; set; } = false;
-		protected virtual string IconResourcePath(string fileName) => $"Empire.NPC.S1API_NPCs.Icons.{fileName}";
+		public virtual bool IsUnlocked { get; set; } = false;
+		//protected virtual string IconResourcePath(string fileName) => $"Empire.NPC.S1API_NPCs.Icons.{fileName}";
 		public abstract string DealerId { get; }
-		public new abstract string FirstName { get; }
+		public new abstract string FirstName { get;		 }
 		public new abstract string LastName { get; }
 		public virtual string DisplayName => $"{FirstName} {LastName}";
 		public virtual string Image => $"{DealerId}.png";
-		public abstract int Tier { get; }
-		public abstract List<UnlockRequirement> UnlockRequirements { get; }
-		public abstract List<string> DealDays { get; }
-		public abstract bool CurfewDeal { get; }
-		public abstract List<List<float>> Deals { get; }
-		public abstract int RefreshCost { get; }
-		public abstract DealerReward Reward { get; }
-		public abstract float RepLogBase { get; }
-		public abstract List<Drug> Drugs { get; }
-		public abstract List<Shipping> Shippings { get; }
-		public new virtual Dialogue Dialogue => new Dialogue();
-		public abstract DebtManager DebtManager { get; set; }
-		public RewardManager RewardManager { get; set; } // Initialize RewardManager object
-		public virtual Gift Gift
-		{
-			get { return new Gift(); }
-		}
+		public abstract int Tier { get;  }
+		public abstract List<UnlockRequirement> UnlockRequirements { get; protected set; }
+		public abstract List<string> DealDays { get; protected set; }
+		public abstract bool CurfewDeal { get; protected set; }
+		public abstract List<List<float>> Deals { get; protected set; }
+		public abstract int RefreshCost { get; protected set; }
+		public abstract DealerReward Reward { get; protected set; }
+		public abstract float RepLogBase { get; protected set; }
+		public abstract List<Drug> Drugs { get; protected set; }
+		public abstract List<Shipping> Shippings { get; protected set; }
+		public new virtual Dialogue Dialogue { get; protected set; } = new Dialogue();
+		public abstract DebtManager? DebtManager { get; set; }
+		public RewardManager? RewardManager { get; protected set; }
+		public virtual Gift? Gift { get; protected set; }
+		public virtual Debt? Debt { get; protected set; }
 
-		public virtual Debt Debt
-		{
-			get { return new Debt(); }
-		}
 
 		[SaveableField("DealerSaveData")]
 		protected DealerSaveData _DealerData = new DealerSaveData();
@@ -87,16 +83,16 @@ namespace Empire.NPC.S1API_NPCs
 			base.OnCreated();
 			OnEmpireCreated();
 			MelonLogger.Msg($"🆕 Created Empire NPC: {DisplayName} (ID: {DealerId})");
+
+			Contacts.RegisterEmpireNPC(this);
+			MelonLogger.Msg($"Registered Empire NPC '{DisplayName}' with Contacts.");
 		}
 
 		protected override void OnLoaded()
 		{
 			base.OnLoaded();
 			OnEmpireLoaded();
-			MelonLogger.Msg($"📂 Loaded Empire NPC: {DisplayName} (ID: {DealerId})");
-
-			Contacts.Buyers.Add(DealerId, this);
-			MelonLogger.Msg($"Registered Empire NPC '{DisplayName}' with Contacts.");
+			MelonLogger.Msg($"📂 Loaded Empire NPC: {DisplayName} (ID: {DealerId})");			
 		}
 
 		public void IncreaseCompletedDeals(int amount)
@@ -132,10 +128,11 @@ namespace Empire.NPC.S1API_NPCs
 				}
 				else
 				{
-					SendTextMessage(messageType);	//	keep it for debugging purposes
+					SendTextMessage($"Message Failed - no message found for {messageType}");	//	keep it for debugging purposes
 					return null;
 				} 
 			}
+
 			string line = "";
 			// Safe random selection (messages.Count > 0 guaranteed here)
 			if (index < 0 || index >= messages.Count)
@@ -146,37 +143,6 @@ namespace Empire.NPC.S1API_NPCs
 			{
 				line = messages[index];
 			}
-
-			// Resolve quality color safely. Guard against missing quality or missing QualityTypes
-			//int qualityindex = -1;
-			//try
-			//{
-			//	if (!string.IsNullOrWhiteSpace(quality))
-			//	{
-			//		var qualityTypes = JSONDeserializer.dealerData?.QualityTypes ?? new List<string>();
-			//		qualityindex = Array.FindIndex(qualityTypes.ToArray(), q => q.Trim().ToLowerInvariant() == quality.Trim().ToLowerInvariant());
-			//	}
-			//}
-			//catch
-			//{
-			//	MelonLogger.Error("❌ Error finding quality index.");
-			//	qualityindex = -1;
-			//}
-
-			//string qualityColor = "#FFFFFF"; // default fallback color
-			//if (qualityindex >= 0)
-			//{
-			//	try
-			//	{
-			//		if (QualityColors.Colors != null && qualityindex >= 0 && qualityindex < QualityColors.Colors.Length)
-			//			qualityColor = QualityColors.Colors[qualityindex];
-			//	}
-			//	catch
-			//	{
-			//		MelonLogger.Error("❌ Error finding quality color.");
-			//		qualityColor = "#FFFFFF";
-			//	}
-			//}
 
 			string qualityColor = "#FFFFFF"; // fallback
 	
@@ -200,24 +166,12 @@ namespace Empire.NPC.S1API_NPCs
 				formatted = formatted.Replace("{effects}", "none");
 			}
 
-			//if (optionalEffects != null && optionalEffects.Count > 0)
-			//{
-			//	string effects = string.Join(", ", optionalEffects.Select(e => $"<color=#00FFFF>{e}</color>"));
-			//	formatted = formatted.Replace("{optionalEffects}", effects);
-			//}
-			//else
-			//{
-			//	formatted = formatted.Replace("{optionalEffects}", "none");
-			//}
-
 			string effects = (optionalEffects != null && optionalEffects.Count > 0)
 				? string.Join(", ", optionalEffects.Select(e => $"<color=#00FFFF>{e}</color>"))
 				: "none";
 
 			formatted = formatted.Replace("{optionalEffects}", effects);
 
-			//UPDATABELE - May change
-			// If messageType==accept, add another line to formatted = "Remember that we only accept packages after curfew"
 			if (messageType.Equals("accept", StringComparison.OrdinalIgnoreCase))
 			{
 				if (CurfewDeal)
@@ -236,62 +190,6 @@ namespace Empire.NPC.S1API_NPCs
 				return null;
 			}
 		}
-
-		//public string GetDrugUnlockInfo()
-		//{
-
-		//	System.Text.StringBuilder info = new System.Text.StringBuilder();
-		//	info.AppendLine($"<b>Dealer: {DisplayName}</b> (Reputation: <color=#FFFFFF>{DealerSaveData.Reputation}</color>)");
-		//	//info.AppendLine("<u>Drug Unlocks</u>:");
-		//	foreach (var drug in Drugs)
-		//	{
-		//		string drugStatus = drug.UnlockRep <= _DealerData.Reputation
-		//			? "<color=#00FF00>Unlocked</color>"
-		//			: $"<color=#FF4500>Locked (Unlock at: {drug.UnlockRep})</color>";
-		//		info.AppendLine($"<b>• {drug.Type}</b> - {drugStatus}");
-
-		//		// Qualities
-		//		if (drug.Qualities != null && drug.Qualities.Count > 0)
-		//		{
-		//			info.AppendLine("  Qualities:");
-		//			foreach (var quality in drug.Qualities)
-		//			{
-		//				float effectiveQuality = quality.DollarMult;
-		//				if (QualityRegistry.Qualities.ContainsKey(quality.Type))
-		//				{
-		//					effectiveQuality += QualityRegistry.Qualities[quality.Type];
-		//				}
-		//				if (JSONDeserializer.QualitiesDollarMult.ContainsKey(quality.Type))
-		//				{
-		//					effectiveQuality += JSONDeserializer.QualitiesDollarMult[quality.Type];
-		//				}
-		//				string qualityStatus = quality.UnlockRep <= _DealerData.Reputation
-		//					? "<color=#00FF00>Unlocked</color>"
-		//					: $"<color=#FF4500>Locked (Unlock at: {quality.UnlockRep})</color>";
-		//				info.AppendLine($"    - {quality.Type} (x<color=#00FFFF>{effectiveQuality:F2}</color>) : {qualityStatus}");
-		//			}
-		//		}
-		//		// Effects
-		//		if (drug.Effects != null && drug.Effects.Count > 0)
-		//		{
-		//			info.AppendLine("  Effects:");
-		//			foreach (var effect in drug.Effects)
-		//			{
-		//				float effectiveEffect = effect.DollarMult;
-		//				if (JSONDeserializer.EffectsDollarMult.ContainsKey((effect.Name).ToLower().Trim()))
-		//				{
-		//					effectiveEffect += JSONDeserializer.EffectsDollarMult[(effect.Name).ToLower().Trim()];
-		//				}
-		//				string effectStatus = effect.UnlockRep <= _DealerData.Reputation
-		//					? "<color=#00FF00>Unlocked</color>"
-		//					: $"<color=#FF4500>Locked (Unlock at: {effect.UnlockRep})</color>";
-		//				info.AppendLine($"    - {effect.Name} (Prob <color=#FFA500>{effect.Probability:F2}</color>, x<color=#00FFFF>{effectiveEffect:F2}</color>) : {effectStatus}");
-		//			}
-		//		}
-		//		info.AppendLine(""); // spacer
-		//	}
-		//	return info.ToString();
-		//}
 
 		public string GetDrugUnlockInfo()
 		{

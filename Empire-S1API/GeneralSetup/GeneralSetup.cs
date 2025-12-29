@@ -24,8 +24,8 @@ namespace Empire.GeneralSetup
             MelonLogger.Msg($"Unc Calls: {EmpireSaveData.SaveData.UncNelsonCartelIntroDone}");
             if (!EmpireSaveData.SaveData.UncNelsonCartelIntroDone)
             {
-                //MelonLogger.Msg($"Unc Calls: {EmpireSaveData.SaveData.UncNelsonCartelIntroDone}");
                 EmpireSaveData.SaveData.UncNelsonCartelIntroDone = true;
+                
                 // Queue the intro as a phone call with staged dialogue
                 var caller = S1API.Entities.NPC.Get<UncleNelson>() as UncleNelson;
 

@@ -1,24 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using Empire.NPC;
+﻿using Empire.NPC;
 using Empire.NPC.S1API_NPCs;
 using Empire.Phone.Data;
 using Empire.Quest;
-using Empire.Utilities.EffectHelpers;
+using Empire.Utilities;
 using Empire.Utilities.QuestHelpers;
-
-
-//using Empire;
-//using Il2Cpp;
+using Empire_S1API.Utilities;
 using MelonLoader;
-using MelonLoader.Utils;
 using S1API.Console;
 using S1API.GameTime;
 using S1API.Internal.Utils;
 using S1API.Money;
 using S1API.UI;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -32,9 +27,10 @@ namespace Empire.Phone
         protected override string AppName => "Empire";
         protected override string AppTitle => "Empire";
         protected override string IconLabel => "Empire";
-        protected override string IconFileName => Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "EmpireIcon.png");
+        protected override string IconFileName => "";
+		protected override Sprite? IconSprite => EmpireResourceLoader.LoadEmbeddedIcon("EmpireIcon.png");
 
-        private List<QuestData> quests;
+		private List<QuestData> quests;
         private RectTransform questListContainer;
         private RectTransform buyerListContainer;
         private Text
@@ -98,7 +94,7 @@ namespace Empire.Phone
         protected override void OnCreated()
         {
             base.OnCreated();
-            MelonLogger.Msg("[EmpireApp] OnCreated called");
+            MelonLogger.Msg("[EmpirePhoneApp] OnCreated called");
             Instance = this;
             Reset();
             TimeManager.OnDayPass -= LoadQuests;
@@ -106,21 +102,22 @@ namespace Empire.Phone
             MelonLogger.Msg("✅ TimeManager.OnDayPass event subscribed");
         }
 
-        private void InitializeDealers()
-        {
-            try
-            {
-                JSONDeserializer.Initialize();
-                MelonLogger.Msg("✅ Dealers initialized");
-                Contacts.Update();
-                MelonLogger.Msg($"Contacts.Buyers Count: {Contacts.Buyers.Count}");
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Error($"Failed to initialize dealers: {ex}");
-            }
-        }
-        protected override void OnCreatedUI(GameObject container)
+		// No longer used
+		//private void InitializeDealers()
+		//{
+		//    try
+		//    {
+		//        //JSONDeserializer.Initialize();
+		//        //MelonLogger.Msg("✅ Dealers initialized");
+		//        Contacts.Update();
+		//        //MelonLogger.Msg($"Contacts.Buyers Count: {Contacts.Buyers.Count}");
+		//    }
+		//    catch (Exception ex)
+		//    {
+		//        MelonLogger.Error($"Failed to initialize dealers: {ex}");
+		//    }
+		//}
+		protected override void OnCreatedUI(GameObject container)
         {
 
             var bg = UIFactory.Panel("MainBG", container.transform, Color.black, fullAnchor: true);
@@ -154,8 +151,10 @@ namespace Empire.Phone
             questTitle = UIFactory.Text("Title", "", rightPanel.transform, 24, TextAnchor.MiddleLeft, FontStyle.Bold);
             questTask = UIFactory.Text("Task", "", rightPanel.transform, 18, TextAnchor.MiddleLeft, FontStyle.Normal);
             questReward = UIFactory.Text("Reward", "", rightPanel.transform, 18, TextAnchor.MiddleLeft, FontStyle.Normal);
+
             deliveryStatus = UIFactory.Text("DeliveryStatus", "", rightPanel.transform, 16, TextAnchor.MiddleLeft, FontStyle.Italic);
             deliveryStatus.color = new Color(32, 0x82, 0xF6, 0xff);
+
             // Create a horizontal container for Refresh and Cancel
             var topButtonRow = UIFactory.Panel("TopButtonRow", rightPanel.transform, Color.clear);
             UIFactory.HorizontalLayoutOnGO(topButtonRow, spacing: 12);
@@ -234,10 +233,14 @@ namespace Empire.Phone
             refreshRect.pivot = new Vector2(1f, 1f);
             refreshRect.anchoredPosition = new Vector2(-10f, -10f);
             refreshRect.sizeDelta = new Vector2(50, 25);
-            if (Contacts.Buyers == null || Contacts.Buyers.Count == 0)
-            {
-                InitializeDealers();
-            }
+    //        if (Contacts.Buyers == null || Contacts.Buyers.Count == 0)
+    //        {
+				//MelonLogger.Msg(
+	   //             $"[EmpirePhoneApp] Initializing dealers on UI creation because Contacts.Buyers is " +
+	   //             $"{(Contacts.Buyers == null ? "null" : Contacts.Buyers.Count == 0 ? "empty" : "populated")}"
+    //            );
+				//InitializeDealers();
+    //        }
             MelonCoroutines.Start(WaitForBuyerAndInitialize());
         }
 
@@ -275,7 +278,7 @@ namespace Empire.Phone
             ButtonUtils.AddListener(shipTuple.Item2, () => UpdateBuyerDetails("Shipping"));
 
             // Add Gifts tab button
-            var giftsTuple = UIFactory.RoundedButtonWithLabel("GiftsButton", "Gift", topBar.transform, new Color(0.2f, 0.2f, 0.2f, 1f), 120, 40, 16, Color.white);
+            var giftsTuple = UIFactory.RoundedButtonWithLabel("GiftsButton", "Gifts", topBar.transform, new Color(0.2f, 0.2f, 0.2f, 1f), 120, 40, 16, Color.white);
             ButtonUtils.ClearListeners(giftsTuple.Item2);
             ButtonUtils.AddListener(giftsTuple.Item2, () => UpdateBuyerDetails("Gifts"));
 
@@ -345,18 +348,36 @@ namespace Empire.Phone
             messageContainer.transform.SetAsLastSibling();
             topBar.transform.SetAsLastSibling();
 
-            // Auto-select first buyer if any exists and update details
-            if (Contacts.Buyers.Values.Any(b => b.IsInitialized))
-            {
-                if (selectedBuyer == null || !selectedBuyer.IsInitialized)
-                {
-                    selectedBuyer = Contacts.Buyers.Values.First(b => b.IsInitialized);
-                }
-                UpdateBuyerDetails("Reputation");
-            }
-        }
+            //// Auto-select first buyer if any exists and update details
+            //if (Contacts.Buyers.Values.Any(b => b.IsInitialized))
+            //{
+            //    if (selectedBuyer == null || !selectedBuyer.IsInitialized)
+            //    {
+            //        selectedBuyer = Contacts.Buyers.Values.First(b => b.IsInitialized);
+            //    }
+            //    UpdateBuyerDetails("Reputation");
+            //}
 
-        private void UpdateBuyerDetails(string tab)
+			// Auto-select first *unlocked* buyer if none selected
+			var firstUnlocked = Contacts.Buyers.Values.FirstOrDefault(b => b.IsUnlocked);
+
+			if (firstUnlocked != null)
+			{
+				if (selectedBuyer == null || !selectedBuyer.IsUnlocked)
+					selectedBuyer = firstUnlocked;
+
+				UpdateBuyerDetails("Reputation");
+			}
+			else
+			{
+				// No unlocked buyers yet — show empty UI
+				selectedBuyer = null;
+				UpdateBuyerDetails("Reputation");
+			}
+
+		}
+
+		private void UpdateBuyerDetails(string tab)
         {
             if (managementDetailPanel == null)
             {
@@ -379,22 +400,26 @@ namespace Empire.Phone
             string content = "";
             if (tab == "Reputation")
             {
-                var imagePath = selectedBuyer.Image ?? Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "EmpireIcon_quest.png");
-                UIFactory.SetIcon(ImageUtils.LoadImage(imagePath), managementDetailPanel.transform);
+                var imagePath = selectedBuyer.Image ?? "fallback-dealer.png";
+				UIFactory.SetIcon(EmpireResourceLoader.LoadEmbeddedIcon(imagePath), managementDetailPanel.transform);
+
                 var icon = managementDetailPanel.transform.GetComponentInChildren<Image>();
                 if (icon != null)
                     icon.GetComponent<RectTransform>().sizeDelta = new Vector2(127, 127);
                 content = $"<b>Reputation:</b> {selectedBuyer.DealerSaveData.Reputation}";
+                
                 if (selectedBuyer.DealDays != null && selectedBuyer.DealDays.Count > 0)
                 {
                     string daysStr = string.Join(", ", selectedBuyer.DealDays);
                     content += $"\n\n<b><color=#FFA500>Deal Days:</color></b> <color=#FFFFFF>{daysStr}</color>";
                 }
+                
                 var pendingBuyers = Contacts.Buyers.Values
                     .Where(b => !b.IsInitialized &&
                                 b.UnlockRequirements != null &&
                                 b.UnlockRequirements.Any(r => r.Name == selectedBuyer.DisplayName && r.MinRep > selectedBuyer.DealerSaveData.Reputation))
                     .ToList();
+                
                 if (pendingBuyers.Count > 0)
                 {
                     content += "\n\n<b>Pending Unlocks:</b>\n";
@@ -404,6 +429,7 @@ namespace Empire.Phone
                         content += $"• {buyer.DisplayName}: Requires Rep {req?.MinRep}\n";
                     }
                 }
+
                 UIFactory.Text("DetailText", content, managementDetailPanel.transform, 18);
             }
             else if (tab == "Product")
@@ -417,15 +443,16 @@ namespace Empire.Phone
                 string currentShipping = "";
                 string nextShipping = "";
                 double logResult = 0d;
+
                 if (selectedBuyer.RepLogBase > 1)
                 {
                     logResult = Math.Log((double)selectedBuyer.DealerSaveData.Reputation + 1, (double)selectedBuyer.RepLogBase);
                     if (logResult < 4) logResult = 0;
                     else logResult = logResult - 4;
                 }
-                //format to 2 decimal places
-                logResult = Math.Round(logResult, 2);
-                if (selectedBuyer.Shippings != null && currentTier < selectedBuyer.Shippings.Count)
+                logResult = Math.Round(logResult, 2);   //format to 2 decimal places
+
+				if (selectedBuyer.Shippings != null && currentTier < selectedBuyer.Shippings.Count)
                 {
                     var currentShip = selectedBuyer.Shippings[currentTier];
                     currentShipping = $"<b><color=#FF6347>Current Tier ({currentTier})</color></b>\n" +
@@ -441,6 +468,7 @@ namespace Empire.Phone
                 {
                     currentShipping = "<b><color=#FF6347>Current shipping info not available.</color></b>";
                 }
+
                 if (selectedBuyer.Shippings != null && currentTier + 1 < selectedBuyer.Shippings.Count)
                 {
                     var nextShip = selectedBuyer.Shippings[currentTier + 1];
@@ -458,6 +486,7 @@ namespace Empire.Phone
                     nextShipping = "<b><color=#FF6347>Next Tier:</color></b> <color=#FFFFFF>Maximum tier unlocked.</color>";
                 }
                 content = currentShipping + "\n" + nextShipping;
+
                 UIFactory.Text("ShippingDetailText", content, managementDetailPanel.transform, 18);
 
                 if (selectedBuyer.Shippings != null && currentTier + 1 < selectedBuyer.Shippings.Count)
@@ -535,6 +564,7 @@ namespace Empire.Phone
                 // Reward area: capture rewardManager and buyer
                 var rewardManager = capturedBuyer.RewardManager;
                 string rewardType = rewardManager.GetRewardType();
+
                 if (capturedBuyer.Reward?.Args != null && capturedBuyer.Reward.Args.Count > 0)
                 {
                     rewardType += " - " + string.Join(" ", capturedBuyer.Reward.Args) + " - Reward will be given after 10 secs";
@@ -573,14 +603,156 @@ namespace Empire.Phone
                     MelonCoroutines.Start(BlinkMessage(success));
 
                     Contacts.Update();
-                    if (Contacts.Buyers.TryGetValue(capturedBuyer.DealerId, out var updatedAfterReward) && updatedAfterReward.IsInitialized)
-                        selectedBuyer = updatedAfterReward;
-                    else
-                        selectedBuyer = capturedBuyer;
+                    //if (Contacts.Buyers.TryGetValue(capturedBuyer.DealerId, out var updatedAfterReward) && updatedAfterReward.IsInitialized)
+                    //    selectedBuyer = updatedAfterReward;
+                    //else
+                    //    selectedBuyer = capturedBuyer;
 
                     UpdateBuyerDetails("Gifts");
                 });
             }
+            //else if (tab == "Gifts")
+            //{
+            //	// Safety: ensure we have a valid buyer
+            //	if (selectedBuyer == null)
+            //	{
+            //		UIFactory.Text("NoSelectionText", "Select a contact from the list.", managementDetailPanel.transform, 18);
+            //		return;
+            //	}
+
+            //	// Safety: ensure buyer has a Gift defined
+            //	if (selectedBuyer.Gift == null)
+            //	{
+            //		UIFactory.Text("GiftErrorText", "This buyer has no gift available.", managementDetailPanel.transform, 18);
+            //		return;
+            //	}
+
+            //	// --- Gift Info ---
+            //	UIFactory.Text(
+            //		"SpecialDetailText",
+            //		$"<b>Special Gift</b>\nCost: ${selectedBuyer.Gift.Cost}\nReputation Gain: {selectedBuyer.Gift.Rep}",
+            //		managementDetailPanel.transform,
+            //		18
+            //	);
+
+            //	// Remove any existing GiftButton to avoid duplicates
+            //	var old = managementDetailPanel.transform.Find("GiftButton");
+            //	if (old != null)
+            //		GameObject.Destroy(old.gameObject);
+
+            //	// --- Give Gift Button ---
+            //	var giftTuple = UIFactory.RoundedButtonWithLabel(
+            //		"GiftButton",
+            //		"Give Gift",
+            //		managementDetailPanel.transform,
+            //		new Color32(0, 123, 255, 255),
+            //		460f,
+            //		60f,
+            //		22,
+            //		Color.white
+            //	);
+
+            //	MelonLogger.Msg($"GiftButton returned object: {giftTuple.Item2.name}");
+            //	MelonLogger.Msg($"GiftButton parent: {giftTuple.Item2.transform.parent.name}");
+
+            //	ButtonUtils.ClearListeners(giftTuple.Item2);
+            //	ButtonUtils.AddListener(giftTuple.Item2, () =>
+            //	{
+            //		int cost = selectedBuyer.Gift.Cost;
+            //                 MelonLogger.Msg($"[EmpirePhoneApp] Attempting to give gift to {selectedBuyer.DisplayName} costing ${cost}.  Money.GetCashBalance() = {Money.GetCashBalance()}");
+
+            //		if (Money.GetCashBalance() < cost)
+            //		{
+            //			var error = UIFactory.Text(
+            //				"SpecialErrorText",
+            //				"<color=#FF0000>Not enough cash for gift.</color>",
+            //				GetMessageParent(),
+            //				18
+            //			);
+            //			MelonCoroutines.Start(BlinkMessage(error));
+            //			return;
+            //		}
+
+            //		// Apply gift effects
+            //		ConsoleHelper.RunCashCommand(-cost);
+            //		selectedBuyer.GiveReputation(selectedBuyer.Gift.Rep);
+
+            //		var successMessage = UIFactory.Text(
+            //			"SpecialSuccessText",
+            //			$"Gift given! Reputation increased by {selectedBuyer.Gift.Rep}.",
+            //			GetMessageParent(),
+            //			18
+            //		);
+            //		MelonCoroutines.Start(BlinkMessage(successMessage));
+
+            //		// Refresh Contacts data (does NOT replace buyer instances anymore)
+            //		Contacts.Update();
+
+            //		var resolved = Contacts.GetBuyer(selectedBuyer.DisplayName);
+            //		MelonLogger.Msg($"[GiftButton] Before: {selectedBuyer.GetHashCode()}, After: {resolved.GetHashCode()}");
+
+            //                 if (resolved != null)
+            //                 {
+            //			selectedBuyer = Contacts.GetBuyer(resolved.DisplayName);
+            //		}                    
+
+            //		// Rebuild Gifts UI with the same selectedBuyer
+            //		UpdateBuyerDetails("Gifts");
+            //	});
+
+            //	MelonLogger.Msg("[GiftsTab] Entering reward section");
+            //	// --- Reward Section ---
+            //	var rewardManager = selectedBuyer.RewardManager;
+            //	string rewardType = rewardManager?.GetRewardType() ?? "No reward available";
+
+            //	if (selectedBuyer.Reward?.Args != null && selectedBuyer.Reward.Args.Count > 0)
+            //	{
+            //		rewardType += " - " + string.Join(" ", selectedBuyer.Reward.Args) + " - Reward will be given after 10 secs";
+            //	}
+
+            //	UIFactory.Text("RewardTypeText", $"Reward Type: {rewardType}", managementDetailPanel.transform, 18);
+
+            //	var rewardButtonTuple = UIFactory.RoundedButtonWithLabel(
+            //		"RewardButton",
+            //		"Claim Reward",
+            //		managementDetailPanel.transform,
+            //		new Color32(0, 123, 255, 255),
+            //		460f,
+            //		60f,
+            //		22,
+            //		Color.white
+            //	);
+
+            //	ButtonUtils.ClearListeners(rewardButtonTuple.Item2);
+            //	ButtonUtils.AddListener(rewardButtonTuple.Item2, () =>
+            //	{
+            //		if (!rewardManager?.isRewardAvailable ?? true)
+            //		{
+            //			var error = UIFactory.Text(
+            //				"RewardResultText",
+            //				"<color=#FF0000>Reward not available today.</color>",
+            //				GetMessageParent(),
+            //				18
+            //			);
+            //			MelonCoroutines.Start(BlinkMessage(error));
+            //			return;
+            //		}
+
+            //		rewardManager.GiveReward();
+
+            //		var success = UIFactory.Text(
+            //			"RewardResultText",
+            //			"<color=#00FF00>Reward claimed!</color>",
+            //			GetMessageParent(),
+            //			18
+            //		);
+            //		MelonCoroutines.Start(BlinkMessage(success));
+
+            //		// Refresh UI
+            //		UpdateBuyerDetails("Gifts");
+            //	});
+            //	MelonLogger.Msg("[GiftsTab] Reward section complete");
+            //}
             else if (tab == "Debt")
             {
                 if (selectedBuyer.Debt == null || selectedBuyer.DealerSaveData.DebtRemaining <= 0)
@@ -713,21 +885,21 @@ namespace Empire.Phone
         }
         private System.Collections.IEnumerator WaitForBuyerAndInitialize()
         {
-            float timeout = 5f;
-            float waited = 0f;
+            //float timeout = 5f;
+            //float waited = 0f;
 
             MelonLogger.Msg("PhoneApp-WaitForBuyerAndInitialize-Waiting for Contacts to be initialized...");
-            while ((!Contacts.IsUnlocked) && waited < timeout)
+            while ((!Contacts.IsInitialized)) // && waited < timeout)
             {
-                waited += Time.deltaTime;
+                //waited += Time.deltaTime;
                 yield return null; // Wait for the next frame
             }
 
-            if (!Contacts.IsUnlocked)
-            {
-                MelonLogger.Warning("⚠️ PhoneApp-Timeout reached. Contacts are still not unlocked.");
-                yield break; // Exit the coroutine
-            }
+            //if (!Contacts.IsInitialized)
+            //{
+            //    //MelonLogger.Warning("⚠️ PhoneApp-Timeout reached. Contacts are still not unlocked.");
+            //    yield break; // Exit the coroutine
+            //}
 
             MelonLogger.Msg("Dealers and Buyers initialized successfully.");
             LoadQuests();
@@ -738,7 +910,8 @@ namespace Empire.Phone
             int refreshCost = 0;
             foreach (var buyer in Contacts.Buyers.Values)
             {
-                string currentDay = S1API.GameTime.TimeManager.CurrentDay.ToString();
+                string currentDay = TimeManager.CurrentDay.ToString();
+                MelonLogger.Msg($"RefreshButton(): Current Day: {currentDay}.");
                 if (buyer.DealDays != null && buyer.DealDays.Contains(currentDay) && buyer.IsInitialized)
                 {
                     refreshCost += buyer.RefreshCost;
@@ -756,38 +929,46 @@ namespace Empire.Phone
         public static void ClearChildren(Transform parent)
         {
             if (parent == null) return;
-            for (int i = parent.childCount - 1; i >= 0; i--)
-            {
-                Object.Destroy(parent.GetChild(i).gameObject);
-            }
-        }
+
+            UIFactory.ClearChildren(parent);    //  use S1API function
+			//for (int i = parent.childCount - 1; i >= 0; i--)
+			//{
+			//    Object.Destroy(parent.GetChild(i).gameObject);
+			//}
+		}
         private void LoadQuests()
         {
             quests = new List<QuestData>();
             foreach (var buyer in Contacts.Buyers.Values)
             {
-                string currentDay = S1API.GameTime.TimeManager.CurrentDay.ToString();
-                if (buyer.DealDays == null || !buyer.DealDays.Contains(currentDay) || !buyer.IsInitialized)
+                string currentDay = TimeManager.CurrentDay.ToString();
+                MelonLogger.Msg($"Checking dealer {buyer.DisplayName} for quests on day {currentDay}.");
+				if (buyer.DealDays == null || !buyer.DealDays.Contains(currentDay) || !buyer.IsInitialized)
                 {
-                    continue;
+                    MelonLogger.Msg($"Skipping dealer {buyer.DisplayName}: DealDays not set or does not include {currentDay}, or dealer not initialized: IsInitialized -> {buyer.IsInitialized}.");
+					continue;
                 }
 
                 var dealerSaveData = buyer.DealerSaveData;
-                if (dealerSaveData.ShippingTier < 0 || dealerSaveData.ShippingTier >= buyer.Shippings.Count)
+                MelonLogger.Msg($"Dealer {buyer.DisplayName} - ShippingTier: {dealerSaveData.ShippingTier}.");
+				if (dealerSaveData.ShippingTier < 0 || dealerSaveData.ShippingTier >= buyer.Shippings.Count)
                 {
                     MelonLogger.Error($"[EmpirePhoneApp] Invalid ShippingTier {dealerSaveData.ShippingTier} for dealer {buyer.DisplayName}. Shippings.Count={buyer.Shippings.Count}");
                     continue;
                 }
 
                 var drugTypes = dealerSaveData.UnlockedDrugs.Select(d => d.Type).Distinct().OrderBy(_ => UnityEngine.Random.value).ToArray();
-                if (drugTypes.Any())
+                MelonLogger.Msg($"Dealer {buyer.DisplayName} has unlocked drugs: {string.Join(", ", drugTypes)}.");
+				if (drugTypes.Any())
                 {
-                    GenerateQuest(buyer, drugTypes.First());
+                    MelonLogger.Msg($"Generating quest for dealer {buyer.DisplayName} with drug {drugTypes.First()}. drugTypes.Any(): {drugTypes.Any()}");
+					GenerateQuest(buyer, drugTypes.First());
                 }
             }
             MelonLogger.Msg($"✅ Total quests loaded: {quests.Count}");
             RefreshQuestList();
         }
+
         int RoundToHalfMSD(int value)
         {
             if (value == 0) return 0;
@@ -803,8 +984,11 @@ namespace Empire.Phone
 			var unlockedDrug = buyer.DealerSaveData.UnlockedDrugs
 				.FirstOrDefault(d => d.Type == drugType);
 
-			if (unlockedDrug == null)
-				return;
+            if (unlockedDrug == null)
+            {
+                MelonLogger.Msg($"Unlocked drug '{drugType}' not found for dealer '{buyer.DisplayName}'.");
+                return;
+            }
 
 			if (unlockedDrug.Qualities.Count == 0)
 			{
@@ -823,10 +1007,10 @@ namespace Empire.Phone
 			var (qualityName, qualityMult, qualityColor) = builder.SelectQuality();
 
 			// --- Random numbers ------------------------------------------------------
-			float randomNum1 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[0], JSONDeserializer.RandomNumberRanges[1]);
-			float randomNum2 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[2], JSONDeserializer.RandomNumberRanges[3]);
-			float randomNum3 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[4], JSONDeserializer.RandomNumberRanges[5]);
-			float randomNum4 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[6], JSONDeserializer.RandomNumberRanges[7]);
+			float randomNum1 = UnityEngine.Random.Range(EmpireConfig.RandomRanges[0], EmpireConfig.RandomRanges[1]);
+			float randomNum2 = UnityEngine.Random.Range(EmpireConfig.RandomRanges[2], EmpireConfig.RandomRanges[3]);
+			float randomNum3 = UnityEngine.Random.Range(EmpireConfig.RandomRanges[4], EmpireConfig.RandomRanges[5]);
+			float randomNum4 = UnityEngine.Random.Range(EmpireConfig.RandomRanges[6], EmpireConfig.RandomRanges[7]);
 
 			// --- Effects -------------------------------------------------------------
 			var (necessary, necessaryMult, optional, optionalMult, temp11, temp21)
@@ -924,162 +1108,6 @@ namespace Empire.Phone
 			return sb.Length == 0 ? "none" : sb.ToString();
 		}
 
-
-		//private void GenerateQuest(EmpireNPC buyer, string drugType)
-		//{
-		//    var shipping = buyer.Shippings[buyer.DealerSaveData.ShippingTier];
-		//    int minAmount = shipping.MinAmount;
-		//    int maxAmount = shipping.MaxAmount;
-		//    double logResult = 0d;
-		//    if (buyer.RepLogBase > 1)
-		//    {
-		//        logResult = Math.Log((double)buyer.DealerSaveData.Reputation + 1, (double)buyer.RepLogBase);
-		//        if (logResult < 4) logResult = 0;
-		//        else logResult = logResult - 4;
-		//    }
-		//    int steps = (maxAmount - minAmount) / shipping.StepAmount;
-		//    int randomStep = (steps > 0) ? RandomUtils.RangeInt(0, steps + 1) : 0;
-		//    randomStep = (int) (randomStep * (1+logResult));
-		//    int amount = minAmount + randomStep * shipping.StepAmount;
-
-
-		//    var unlockedDrug = buyer.DealerSaveData.UnlockedDrugs.FirstOrDefault(d => d.Type == drugType);
-		//    if (unlockedDrug == null) return;
-
-		//    if (unlockedDrug.Qualities.Count == 0)
-		//    {
-		//        MelonLogger.Error($"[GenerateQuest] ERROR: No qualities unlocked for drug '{unlockedDrug.Type}' for dealer '{buyer.DisplayName}'.");
-		//        return;
-		//    }
-
-		//    var randomQuality = unlockedDrug.Qualities[RandomUtils.RangeInt(0, unlockedDrug.Qualities.Count)];
-		//    var qualityKey = randomQuality.Type.Trim();
-		//    float qualityMult = randomQuality.DollarMult + (JSONDeserializer.QualitiesDollarMult.ContainsKey(qualityKey) ? JSONDeserializer.QualitiesDollarMult[qualityKey] : 0f);
-
-		//    var necessaryEffects = new List<string>();
-		//    var necessaryEffectMult = new List<float>();
-		//    var optionalEffects = new List<string>();
-		//    var optionalEffectMult = new List<float>();
-
-		//    var randomNum1 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[0], JSONDeserializer.RandomNumberRanges[1]);
-		//    float tempMult11 = 1f;
-		//    float tempMult21 = 1f;
-
-		//    foreach (var effect in unlockedDrug.Effects)
-		//    {
-		//        bool isNecessary = effect.Probability > 1f && UnityEngine.Random.Range(0f, 1f) < (effect.Probability - 1f) && !JSONDeserializer.dealerData.NoNecessaryEffects;
-		//        bool isOptional = (effect.Probability > 0f && effect.Probability <= 1f && UnityEngine.Random.Range(0f, 1f) < effect.Probability) || JSONDeserializer.dealerData.NoNecessaryEffects;
-
-		//        if (isNecessary || isOptional)
-		//        {
-		//            string effectName = effect.Name;
-		//            if (effect.Name == "Random")
-		//            {
-		//                effectName = JSONDeserializer.dealerData.EffectsName
-		//                    .Where(name => name != "Random" && !necessaryEffects.Contains(name.Trim().ToLowerInvariant()) && !optionalEffects.Contains(name.Trim().ToLowerInvariant()))
-		//                    .OrderBy(_ => UnityEngine.Random.value)
-		//                    .FirstOrDefault();
-		//            }
-		//            if (string.IsNullOrEmpty(effectName)) continue;
-
-		//            var effectKey = effectName.Trim().ToLowerInvariant();
-		//            float effectDollarMult = effect.DollarMult + (JSONDeserializer.EffectsDollarMult.ContainsKey(effectKey) ? JSONDeserializer.EffectsDollarMult[effectKey] : 0f);
-
-		//            if (isNecessary)
-		//            {
-		//                necessaryEffects.Add(effectKey);
-		//                necessaryEffectMult.Add(effectDollarMult * randomNum1);
-		//                tempMult11 += effectDollarMult * randomNum1;
-		//                tempMult21 += effectDollarMult * randomNum1;
-		//            }
-		//            else if (isOptional)
-		//            {
-		//                optionalEffects.Add(effectKey);
-		//                optionalEffectMult.Add(effectDollarMult * randomNum1);
-		//                tempMult21 += effectDollarMult * randomNum1;
-		//            }
-		//        }
-		//    }
-
-
-		//    var randomIndex = UnityEngine.Random.Range(0, buyer.Deals.Count);
-		//    int dealTime = (int)(buyer.Deals[randomIndex][0] * shipping.DealModifier[0]);
-		//    float dealTimesMult = (float)(buyer.Deals[randomIndex][1] * shipping.DealModifier[1]);
-
-		//    var randomNum2 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[2], JSONDeserializer.RandomNumberRanges[3]);
-		//    var randomNum3 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[4], JSONDeserializer.RandomNumberRanges[5]);
-		//    var randomNum4 = UnityEngine.Random.Range(JSONDeserializer.RandomNumberRanges[6], JSONDeserializer.RandomNumberRanges[7]);
-
-		//    float aggregateDollarMultMin = (1 + qualityMult) * tempMult11 * dealTimesMult * randomNum4;
-		//    float aggregateDollarMultMax = (1 + qualityMult) * tempMult21 * dealTimesMult * randomNum4;
-
-		//    //string effectDesc = "";
-		//    //if (necessaryEffects.Count > 0) effectDesc += $"Required: {string.Join(", ", necessaryEffects)}";
-		//    //if (optionalEffects.Count > 0) effectDesc += (effectDesc.Length > 0 ? "; " : "") + $"Optional: {string.Join(", ", optionalEffects)}";
-
-		//    // Colorize task components: amount, quality (quality-colors), product, and effects (necessary vs optional)
-		//    int qualityIndex = -1;
-		//    try
-		//    {
-		//        var qualityTypes = JSONDeserializer.dealerData?.QualityTypes ?? new List<string>();
-		//        qualityIndex = qualityTypes.FindIndex(q => q?.Trim().ToLowerInvariant() == qualityKey);
-		//    }
-		//    catch
-		//    {
-		//        qualityIndex = -1;
-		//    }
-
-		//    string qualityColor = "#FFFFFF";
-		//    if (qualityIndex >= 0 && QualityColors.Colors != null && qualityIndex < QualityColors.Colors.Length)
-		//        qualityColor = QualityColors.Colors[qualityIndex];
-
-		//    string effectDescColored = "";
-		//    if (necessaryEffects.Count > 0)
-		//    {
-		//        var coloredNecessary = string.Join(", ", necessaryEffects.Select(e => $"<color=#FF0004>{e}</color>"));
-		//        effectDescColored += $"Required: {coloredNecessary}";
-		//    }
-		//    if (optionalEffects.Count > 0)
-		//    {
-		//        if (effectDescColored.Length > 0) effectDescColored += "; ";
-		//        var coloredOptional = string.Join(", ", optionalEffects.Select(e => $"<color=#00FFFF>{e}</color>"));
-		//        effectDescColored += $"Optional: {coloredOptional}";
-		//    }
-		//    if (string.IsNullOrEmpty(effectDescColored)) effectDescColored = "none";
-
-		//    //create the dialogueIndex as a random index of "DealStart" Dialogues of selected buyer
-		//    int dialogueIndex = RandomUtils.RangeInt(0, buyer.Dialogue.DealStart.Count);
-
-		//    var quest = new QuestData
-		//    {
-		//        Title = $"{buyer.DisplayName} wants {drugType} delivered.",
-		//        Task = $"Deliver <color=#FF0004>{amount}x</color> <color={qualityColor}>{qualityKey}</color> <color=#FF0004>{drugType}</color> with effects: {effectDescColored}",
-		//        ProductID = drugType,
-		//        AmountRequired = (uint)amount,
-		//        DealerName = buyer.DisplayName,
-		//        QuestImage = buyer.Image,
-		//        BaseDollar = RoundToHalfMSD((int)(unlockedDrug.BaseDollar * amount / randomNum4)),
-		//        BaseRep = RoundToHalfMSD((int)(unlockedDrug.BaseRep * randomNum2)),
-		//        BaseXp = RoundToHalfMSD((int)(unlockedDrug.BaseXp * randomNum3)),
-		//        RepMult = unlockedDrug.RepMult * randomNum2,
-		//        XpMult = unlockedDrug.XpMult * randomNum3,
-		//        DollarMultiplierMin = (float)Math.Round(aggregateDollarMultMin, 2),
-		//        DollarMultiplierMax = (float)Math.Round(aggregateDollarMultMax, 2),
-		//        DealTime = dealTime,
-		//        DealTimeMult = dealTimesMult * randomNum4,
-		//        Penalties = new List<int> { RoundToHalfMSD((int)(buyer.Deals[randomIndex][2] * shipping.DealModifier[2] * randomNum1)), RoundToHalfMSD((int)(buyer.Deals[randomIndex][3] * shipping.DealModifier[3] * randomNum2)) },
-		//        Quality = qualityKey,
-		//        QualityMult = qualityMult,
-		//        NecessaryEffects = necessaryEffects,
-		//        NecessaryEffectMult = necessaryEffectMult,
-		//        OptionalEffects = optionalEffects,
-		//        OptionalEffectMult = optionalEffectMult,
-		//        Index = Index++,
-		//        DialogueIndex = dialogueIndex
-		//    };
-		//    quests.Add(quest);
-		//}
-
 		private void CancelCurrentQuest(QuestData quest)
         {
             var active = QuestDelivery.Active;
@@ -1109,7 +1137,8 @@ namespace Empire.Phone
                 var row = UIFactory.CreateQuestRow(quest.DealerName, questListContainer, out var iconPanel, out var textPanel);
                 quest.Index = row.transform.GetSiblingIndex();
 
-                var image = ImageUtils.LoadImage(quest.QuestImage != null ? Path.Combine(MelonEnvironment.ModsDirectory, "Empire", quest.QuestImage) : Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "EmpireIcon_quest.png"));
+                var image = EmpireResourceLoader.LoadEmbeddedIcon(quest.QuestImage ?? "EmpireIcon_quest.png");
+				//var image = ImageUtils.LoadImage(quest.QuestImage != null ? Path.Combine(MelonEnvironment.ModsDirectory, "Empire", quest.QuestImage) : Path.Combine(MelonEnvironment.ModsDirectory, "Empire", "EmpireIcon_quest.png"));
                 UIFactory.SetIcon(image, iconPanel.transform);
                 var questIcon = iconPanel.transform.GetComponentInChildren<Image>();
                 if (questIcon != null) questIcon.GetComponent<RectTransform>().sizeDelta = new Vector2(128, 128);
@@ -1124,10 +1153,11 @@ namespace Empire.Phone
                 UIFactory.CreateTextBlock(textPanel.transform, quest.Title, quest.Task, false);
             }
         }
+
         private void PopulateBuyerList(RectTransform container)
         {
             ClearChildren(container);
-            var buyers = Contacts.Buyers.Values.Where(b => b.IsInitialized).ToList();
+            var buyers = Contacts.Buyers.Values.Where(b => b.IsInitialized && b.IsUnlocked).ToList();
 
             // Find the default color from a temporary object to ensure consistency
             GameObject tempRow = UIFactory.CreateQuestRow("temp", container, out _, out _);
@@ -1143,7 +1173,8 @@ namespace Empire.Phone
                 // Set row background color based on selection
                 rowImage.color = (selectedBuyer != null && selectedBuyer.DisplayName == buyer.DisplayName) ? Color.black : defaultColor;
 
-                var image = ImageUtils.LoadImage(Path.Combine(MelonEnvironment.ModsDirectory, "Empire", buyer.Image ?? "EmpireIcon_quest.png"));
+                var image = EmpireResourceLoader.LoadEmbeddedIcon(buyer.Image ?? "fallback-dealer.png");
+				//var image = ImageUtils.LoadImage(Path.Combine(MelonEnvironment.ModsDirectory, "Empire", buyer.Image ?? "EmpireIcon_quest.png"));
                 UIFactory.SetIcon(image, iconPanel.transform);
 
                 ButtonUtils.AddListener(row.GetComponent<Button>(), () =>

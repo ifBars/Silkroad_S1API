@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
-namespace Empire.NPC.Data
+namespace Empire.NPC.SaveData
 {
     public class BuyerSaveData
     {

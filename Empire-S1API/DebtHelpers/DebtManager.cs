@@ -36,6 +36,7 @@ namespace Empire.DebtHelpers
             SendDebtMessage(0,"initial"); // Send the initial debt message
             CheckIfPaidThisWeek();
         }
+
         // create a method that uses TimeManager.ElapsedDays which returns integer and finds the nearest highest int (including it) divisible by 7
         public static int GetNearestWeek(int days)
         {
