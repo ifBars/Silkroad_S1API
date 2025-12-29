@@ -192,6 +192,7 @@ namespace Empire.NPC.S1API_NPCs
 			}
 		}
 
+		//	DialogueType enum overload to avoid reflection
 		public string? SendCustomMessage(
 			DialogueType type,
 			string product = "",
