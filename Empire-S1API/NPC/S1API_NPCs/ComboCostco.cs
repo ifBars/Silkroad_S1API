@@ -14,29 +14,15 @@ namespace Empire.NPC.S1API_NPCs
 		public override string DisplayName => "Combo Costco";
 		public override int Tier => 1;
 
-		public ComboCostco()
-		{
-			try
-			{
-				MelonLogger.Msg("ComboCostco: constructor started");
-			}
-			catch (Exception ex)
-			{
-				MelonLogger.Error($"ComboCostco: constructor exception: {ex}");
-			}
-		}
-
 		// No unlock requirements in JSON
 		public override List<UnlockRequirement> UnlockRequirements { get; protected set; } =
 			new List<UnlockRequirement>();
 
-		// JSON uses full names, but your system uses Mon/Tue/etc.
 		public override List<string> DealDays { get; protected set; } =
 			new List<string> { "Monday", "Tuesday", "Wednesday", "Thursday" };
 
 		public override bool CurfewDeal { get; protected set; } = false;
 
-		// Deals (matches JSON)
 		public override List<List<float>> Deals { get; protected set; } =
 			new List<List<float>>
 			{
@@ -46,7 +32,6 @@ namespace Empire.NPC.S1API_NPCs
 
 		public override int RefreshCost { get; protected set; } = 420;
 
-		// Reward (matches JSON)
 		public override DealerReward Reward { get; protected set; } =
 			new DealerReward
 			{
@@ -58,7 +43,6 @@ namespace Empire.NPC.S1API_NPCs
 
 		public override float RepLogBase { get; protected set; } = 3f;
 
-		// Drugs (matches JSON)
 		public override List<Drug> Drugs { get; protected set; } =
 			new List<Drug>
 			{
@@ -86,7 +70,6 @@ namespace Empire.NPC.S1API_NPCs
 				}
 			};
 
-		// Shipping (matches JSON)
 		public override List<Shipping> Shippings { get; protected set; } =
 			new List<Shipping>
 			{
@@ -112,7 +95,6 @@ namespace Empire.NPC.S1API_NPCs
 				}
 			};
 
-		// Dialogue (matches JSON)
 		public override Dialogue Dialogue { get; protected set; } =
 			new Dialogue
 			{
@@ -170,7 +152,6 @@ namespace Empire.NPC.S1API_NPCs
 
 		public override DebtManager? DebtManager { get; set; }
 
-		// No debt in JSON
 		public override Debt? Debt { get; protected set; } =
 			new Debt();
 

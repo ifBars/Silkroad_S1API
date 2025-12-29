@@ -25,6 +25,7 @@ using Empire.Quest.Data;
 using S1Quest = S1API.Quests.Quest;
 using Empire.Utilities.QualityHelpers;
 using Empire.Utilities;
+using Empire.NPC.Data.Enums;
 
 namespace Empire.Quest
 {
@@ -343,7 +344,7 @@ namespace Empire.Quest
             if (Data.RequiredAmount <= 0 && deliveryEntry.State==QuestState.Active)
             {
                 //MelonLogger.Msg("Test2");
-                buyer.SendCustomMessage("Success", Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects,Data.Reward);
+                buyer.SendCustomMessage(DialogueType.Success, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects,Data.Reward);
                 MelonLogger.Msg("❌ No required amount to deliver. Quest done.");
                 
                 deliveryEntry.Complete();
@@ -353,7 +354,7 @@ namespace Empire.Quest
             }
             else if (Data.RequiredAmount > 0)
             {
-                buyer.SendCustomMessage("Incomplete", Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
+                buyer.SendCustomMessage(DialogueType.Incomplete, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
                 MelonLogger.Msg($"Continue delivery. Remaining amount: {Data.RequiredAmount}");
             }
         }
@@ -473,7 +474,7 @@ namespace Empire.Quest
                 Data.RepReward = -Data.Penalties[1];
                 Money.ChangeCashBalance(Data.Reward);
                 buyer.GiveReputation((int)Data.RepReward);
-                buyer.SendCustomMessage("Expire", Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
+                buyer.SendCustomMessage(DialogueType.Expire, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
             }
             else if (source == "Failed")
             {
@@ -481,7 +482,7 @@ namespace Empire.Quest
                 Data.RepReward = -Data.Penalties[1];
                 Money.ChangeCashBalance(Data.Reward);
                 buyer.GiveReputation((int)Data.RepReward);
-                buyer.SendCustomMessage("Fail", Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
+                buyer.SendCustomMessage(DialogueType.Fail, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
             }
             else if (source == "Completed")
             {
@@ -489,7 +490,7 @@ namespace Empire.Quest
                 Data.XpReward += (int)(Data.Reward * Data.XpMult);
                 buyer.GiveReputation((int)Data.RepReward);
                 ConsoleHelper.GiveXp(Data.XpReward);
-                buyer.SendCustomMessage("Reward", Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects, Data.Reward);
+                buyer.SendCustomMessage(DialogueType.Reward, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects, Data.Reward);
                 buyer.IncreaseCompletedDeals(1);
                 buyer.UnlockDrug();
                 Contacts.Update();

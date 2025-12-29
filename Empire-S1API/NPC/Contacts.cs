@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Empire.DebtHelpers;
 using Empire.NPC.Data;
+using Empire.NPC.Data.Enums;
 using Empire.NPC.S1API_NPCs;
 using MelonLoader;
 
@@ -81,17 +82,17 @@ namespace Empire.NPC
         /// <summary>
         /// Reset Contacts static state between scene loads to avoid leaking over the previous session.
         /// </summary>
-        public static void Reset()
-        {
-            Buyers.Clear();
-            IsInitialized = false;
-            //IsUnlocked = false;
-            //BlackmarketBuyer.dealerDataIndex = 0;
-            // Reset the dealer field to force re-initialization
-            //BlackmarketBuyer.dealer = null;
-            _isUpdateCoroutineRunning = false; // Allow coroutine to be restarted
-            MelonLogger.Msg("🧹 Empire Contacts state reset complete");
-        }
+        //public static void Reset()
+        //{
+        //    Buyers.Clear();
+        //    IsInitialized = false;
+        //    //IsUnlocked = false;
+        //    //BlackmarketBuyer.dealerDataIndex = 0;
+        //    // Reset the dealer field to force re-initialization
+        //    //BlackmarketBuyer.dealer = null;
+        //    _isUpdateCoroutineRunning = false; // Allow coroutine to be restarted
+        //    MelonLogger.Msg("🧹 Empire Contacts state reset complete");
+        //}
 
         public static void Update()
         {
@@ -156,7 +157,7 @@ namespace Empire.NPC
 							
                             if (buyer.DealerSaveData.IntroDone == false) // First time Intro
 							{
-								buyer.SendCustomMessage("Intro");
+								buyer.SendCustomMessage(DialogueType.Intro);
 								MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} intro sent.");
 								buyer.DealerSaveData.IntroDone = true; // Set IntroDone to true
 							}

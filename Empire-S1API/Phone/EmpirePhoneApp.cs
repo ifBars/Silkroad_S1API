@@ -1,4 +1,5 @@
 ﻿using Empire.NPC;
+using Empire.NPC.Data.Enums;
 using Empire.NPC.S1API_NPCs;
 using Empire.Phone.Data;
 using Empire.Quest;
@@ -117,8 +118,7 @@ namespace Empire.Phone
 		//        MelonLogger.Error($"Failed to initialize dealers: {ex}");
 		//    }
 		//}
-		protected override void OnCreatedUI(GameObject container)
-        {
+		protected override void OnCreatedUI(GameObject container)        {
 
             var bg = UIFactory.Panel("MainBG", container.transform, Color.black, fullAnchor: true);
 
@@ -1194,7 +1194,7 @@ namespace Empire.Phone
             RefreshQuestList(); // Redraw list to show new selection highlight
 
             var Buyer = Contacts.GetBuyer(quest.DealerName);
-            var dialogue = Buyer.SendCustomMessage("DealStart", quest.ProductID, (int)quest.AmountRequired, quest.Quality, quest.NecessaryEffects, quest.OptionalEffects, 0, true, quest.DialogueIndex);
+            var dialogue = Buyer.SendCustomMessage(DialogueType.DealStart, quest.ProductID, (int)quest.AmountRequired, quest.Quality, quest.NecessaryEffects, quest.OptionalEffects, 0, true, quest.DialogueIndex);
             questTitle.text = quest.Title;
             questTask.text = $"{dialogue}";
             
@@ -1239,7 +1239,7 @@ namespace Empire.Phone
                 return;
             }
             var Buyer = Contacts.GetBuyer(quest.DealerName);
-            Buyer.SendCustomMessage("Accept", quest.ProductID, (int)quest.AmountRequired, quest.Quality, quest.NecessaryEffects, quest.OptionalEffects);
+            Buyer?.SendCustomMessage(DialogueType.Accept, quest.ProductID, (int)quest.AmountRequired, quest.Quality, quest.NecessaryEffects, quest.OptionalEffects);
             deliveryStatus.text = "📦 Delivery started!";
             ButtonUtils.Disable(acceptButton, acceptLabel, "In Progress");
 

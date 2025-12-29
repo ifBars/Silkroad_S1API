@@ -1,5 +1,6 @@
 ﻿using Empire.DebtHelpers;
 using Empire.NPC.Data;
+using Empire.NPC.Data.Enums;
 using Empire.NPC.SaveData;
 using Empire.Reward;
 using Empire.Utilities;
@@ -128,9 +129,9 @@ namespace Empire.NPC.S1API_NPCs
 				}
 				else
 				{
-					SendTextMessage($"Message Failed - no message found for {messageType}");	//	keep it for debugging purposes
+					SendTextMessage($"Message Failed - no message found for {messageType}");    //	keep it for debugging purposes
 					return null;
-				} 
+				}
 			}
 
 			string line = "";
@@ -145,7 +146,7 @@ namespace Empire.NPC.S1API_NPCs
 			}
 
 			string qualityColor = "#FFFFFF"; // fallback
-	
+
 			var info = quality?.GetQuality();
 			if (info != null)
 				qualityColor = info.Color;
@@ -189,6 +190,75 @@ namespace Empire.NPC.S1API_NPCs
 				SendTextMessage(formatted);
 				return null;
 			}
+		}
+
+		public string? SendCustomMessage(
+			DialogueType type,
+			string product = "",
+			int amount = 0,
+			string quality = "",
+			List<string>? necessaryEffects = null,
+			List<string>? optionalEffects = null,
+			int dollar = 0,
+			bool returnMessage = false,
+			int index = -1)
+		{
+			var messages = GetDialogueLines(type);
+
+			if (messages == null || messages.Count == 0)
+			{
+				MelonLogger.Msg($"❌ DialogueType '{type}' has no lines.");
+				if (returnMessage)
+					return type.ToString();
+
+				SendTextMessage($"Message Failed - no message found for {type}");
+				return null;
+			}
+
+			// Pick a line
+			string line = (index < 0 || index >= messages.Count)
+				? messages[RandomUtils.RangeInt(0, messages.Count)]
+				: messages[index];
+
+			// Formatting
+			string qualityColor = quality?.GetQuality()?.Color ?? "#FFFFFF";
+
+			string formatted = line
+				.Replace("{product}", $"<color=#FF0004>{product}</color>")
+				.Replace("{amount}", $"<color=#FF0004>{amount}x</color>")
+				.Replace("{quality}", $"<color={qualityColor}>{(string.IsNullOrWhiteSpace(quality) ? "unknown" : quality)}</color>")
+				.Replace("{dollar}", $"<color=#FF0004>{dollar}</color>");
+
+			if (necessaryEffects != null && necessaryEffects.Count > 0)
+			{
+				string requiredEffects = string.Join(", ", necessaryEffects.Select(e => $"<color=#FF0004>{e}</color>"));
+				formatted = formatted.Replace("{effects}", requiredEffects);
+			}
+			else
+			{
+				formatted = formatted.Replace("{effects}", "none");
+			}
+
+			string effects = (optionalEffects != null && optionalEffects.Count > 0)
+				? string.Join(", ", optionalEffects.Select(e => $"<color=#00FFFF>{e}</color>"))
+				: "none";
+
+			formatted = formatted.Replace("{optionalEffects}", effects);
+
+			// Special case for Accept
+			if (type == DialogueType.Accept)
+			{
+				if (CurfewDeal)
+					formatted += "\nRemember that we only accept packages under cover of night.";
+				else
+					formatted += "\nWe'll take that delivery any time!";
+			}
+
+			if (returnMessage)
+				return formatted;
+
+			SendTextMessage(formatted);
+			return null;
 		}
 
 		public string GetDrugUnlockInfo()
@@ -299,6 +369,24 @@ namespace Empire.NPC.S1API_NPCs
 				MelonLogger.Msg($"         Unlocked Qualities: {string.Join(", ", drug.Qualities.Select(q => q.Type))}");
 				MelonLogger.Msg($"         Unlocked Effects: {string.Join(", ", drug.Effects.Select(e => e.Name))}");
 			}
+		}
+
+		private List<string>? GetDialogueLines(DialogueType type)
+		{
+			var d = Dialogue; // your buyer’s Dialogue object
+
+			return type switch
+			{
+				DialogueType.Intro => d.Intro,
+				DialogueType.DealStart => d.DealStart,
+				DialogueType.Accept => d.Accept,
+				DialogueType.Incomplete => d.Incomplete,
+				DialogueType.Expire => d.Expire,
+				DialogueType.Fail => d.Fail,
+				DialogueType.Success => d.Success,
+				DialogueType.Reward => d.Reward,
+				_ => null
+			};
 		}
 	}
 }
