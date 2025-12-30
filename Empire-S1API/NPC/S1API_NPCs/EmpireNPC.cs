@@ -23,7 +23,6 @@ namespace Empire.NPC.S1API_NPCs
         public override bool IsPhysical => false;
 		public virtual bool IsInitialized { get; set; } = false;
 		public virtual bool IsUnlocked { get; set; } = false;
-		//protected virtual string IconResourcePath(string fileName) => $"Empire.NPC.S1API_NPCs.Icons.{fileName}";
 		public abstract string DealerId { get; }
 		public new abstract string FirstName { get;		 }
 		public new abstract string LastName { get; }
@@ -93,6 +92,9 @@ namespace Empire.NPC.S1API_NPCs
 		{
 			base.OnLoaded();
 			OnEmpireLoaded();
+
+			
+
 			MelonLogger.Msg($"📂 Loaded Empire NPC: {DisplayName} (ID: {DealerId})");			
 		}
 
@@ -204,7 +206,11 @@ namespace Empire.NPC.S1API_NPCs
 			bool returnMessage = false,
 			int index = -1)
 		{
-			var messages = GetDialogueLines(type);
+			List<string> messages = GetDialogueLines(type);
+
+			MelonLogger.Msg($"Retrieved Dialogue lines for {type} for {DisplayName}: {messages?.Count}");
+			MelonLogger.Msg($"First line in messages: {messages.First()}");
+			
 
 			if (messages == null || messages.Count == 0)
 			{
@@ -254,6 +260,8 @@ namespace Empire.NPC.S1API_NPCs
 				else
 					formatted += "\nWe'll take that delivery any time!";
 			}
+
+			MelonLogger.Msg($"Sending? returnMessage={returnMessage}, formatted='{formatted}'");
 
 			if (returnMessage)
 				return formatted;
@@ -375,6 +383,14 @@ namespace Empire.NPC.S1API_NPCs
 		private List<string>? GetDialogueLines(DialogueType type)
 		{
 			var d = Dialogue; // your buyer’s Dialogue object
+
+			if (d == null)
+			{
+				MelonLogger.Msg($"❌ Dialogue is null for dealer {DisplayName}.");
+				return null;
+			}
+
+			MelonLogger.Msg($"[GetDialogueLines] Getting dialogue lines for {type} from dealer {DisplayName}.");
 
 			return type switch
 			{

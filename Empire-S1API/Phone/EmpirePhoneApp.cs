@@ -42,19 +42,19 @@ namespace Empire.Phone
             acceptLabel,
             cancelLabel,
             refreshLabel,
-            manageLabel,
-            relationsLabel,
-            productLabel,
-            shippingLabel;
+            manageLabel;
+        //relationsLabel,
+        //productLabel,
+        //shippingLabel;
         private Button
             acceptButton,
             cancelButton,
             refreshButton,
-            manageButton,
-            relationsButton,
-            productButton,
-            shippingButton;
-        private Text statusText;
+            manageButton;
+            //productButton;
+			//relationsButton,
+			//shippingButton;
+		private Text statusText;
         private Text managementTabLabel;
         public static int Index;
 
@@ -613,14 +613,14 @@ namespace Empire.Phone
             }
             //else if (tab == "Gifts")
             //{
-            //	// Safety: ensure we have a valid buyer
+            //	// ensure we have a valid buyer
             //	if (selectedBuyer == null)
             //	{
             //		UIFactory.Text("NoSelectionText", "Select a contact from the list.", managementDetailPanel.transform, 18);
             //		return;
             //	}
 
-            //	// Safety: ensure buyer has a Gift defined
+            //	// ensure buyer has a Gift defined
             //	if (selectedBuyer.Gift == null)
             //	{
             //		UIFactory.Text("GiftErrorText", "This buyer has no gift available.", managementDetailPanel.transform, 18);

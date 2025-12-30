@@ -138,7 +138,7 @@ namespace Empire.NPC.S1API_NPCs
 				Reward = new List<string>
 				{
 					"Here's your cut of ${dollar}, man. Keep it coming.",
-					"Cash is here.{dollar} Dollars. Good business.",
+					"Cash is here -> ${dollar}. Good business.",
 					"Payment of ${dollar} sent. Don't get sloppy."
 				}
 			};

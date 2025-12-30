@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Empire.DebtHelpers;
+﻿using Empire.DebtHelpers;
 using Empire.NPC.Data;
 using Empire.NPC.Data.Enums;
 using Empire.NPC.S1API_NPCs;
+using Empire.NPC.SaveData;
 using MelonLoader;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Empire.NPC
 {
@@ -58,6 +59,7 @@ namespace Empire.NPC
 			Buyers[npc.DealerId] = npc;
 			BuyersByDisplayName[npc.DisplayName] = npc;
             npc.IsInitialized = true;
+			npc.DealerSaveData.IsInitialized = true;    //	just to force serialization without text message hacks
 
 			MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}; Initialized: {npc.IsInitialized}");
 

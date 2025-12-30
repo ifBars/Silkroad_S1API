@@ -264,9 +264,8 @@ namespace Empire.Quest
                     MelonLogger.Error("❌ NecessaryEffects is null");
                     return;
                 }
-                S1API.Products.ProductDefinition productDef = ProductManager.DiscoveredProducts.FirstOrDefault(p => p.ID == item?.Definition.ID);
+                ProductDefinition productDef = ProductManager.DiscoveredProducts.FirstOrDefault(p => p.ID == item?.Definition.ID);
                 var productType = GetProductType(productDef);
-
 
                 if (productType != Data.ProductID)
                 {

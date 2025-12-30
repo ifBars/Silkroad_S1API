@@ -8,7 +8,8 @@ namespace Empire.NPC.SaveData
 
     public class DealerSaveData
     {
-        public int Reputation; // The dealer's reputation
+        public bool IsInitialized = false; // Whether the dealer data has been initialized
+		public int Reputation; // The dealer's reputation
         public int ShippingTier; // The dealer's shipping tier
         public int DealsCompleted; // Number of deals completed with this dealer
         public List<Drug>? UnlockedDrugs; // List of unlocked drug types with unlocked qualities and effects only
