@@ -77,29 +77,32 @@ namespace Empire.NPC.S1API_NPCs
 				   .WithIcon(GetNPCSprite());
 		}
 
-		protected override void OnCreated()
+	protected override void OnCreated()
+	{
+		base.OnCreated();
+		OnEmpireCreated();
+		MelonLogger.Msg($"🆕 Created Empire NPC: {DisplayName} (ID: {DealerId})");
+
+		Contacts.RegisterEmpireNPC(this);
+		MelonLogger.Msg($"Registered Empire NPC '{DisplayName}' with Contacts.");
+		
+		// Send intro message in OnCreated instead of OnLoaded
+		// This ensures it works both on first creation AND after save/load
+		if (!DealerSaveData.IsInitialized)
 		{
-			base.OnCreated();
-			OnEmpireCreated();
-			MelonLogger.Msg($"🆕 Created Empire NPC: {DisplayName} (ID: {DealerId})");
-
-			Contacts.RegisterEmpireNPC(this);
-			MelonLogger.Msg($"Registered Empire NPC '{DisplayName}' with Contacts.");
+			SendTextMessage("Hi, this is just a message to let you know I'm here, and I'm watching you.  Don't screw up.  See you on the way up.");
+			DealerSaveData.IsInitialized = true;
 		}
+	}
 
-		protected override void OnLoaded()
-		{
-			base.OnLoaded();
-			OnEmpireLoaded();
+	protected override void OnLoaded()
+	{
+		base.OnLoaded();
+		OnEmpireLoaded();
 
-			if (!DealerSaveData.IsInitialized)
-			{
-				SendTextMessage("Hi, this is just a message to let you know I'm here, and I'm watching you.  Don't screw up.  See you on the way up.");
-				DealerSaveData.IsInitialized = true;
-			}
-
-			MelonLogger.Msg($"📂 Loaded Empire NPC: {DisplayName} (ID: {DealerId})");			
-		}
+		// Intro message moved to OnCreated to fix save/load issues
+		MelonLogger.Msg($"📂 Loaded Empire NPC: {DisplayName} (ID: {DealerId})");			
+	}
 
 		public void IncreaseCompletedDeals(int amount)
 		{
@@ -211,19 +214,18 @@ namespace Empire.NPC.S1API_NPCs
 		{
 			List<string>? messages = GetDialogueLines(type);
 
-			MelonLogger.Msg($"Retrieved Dialogue lines for {type} for {DisplayName}: {messages?.Count}");
-			MelonLogger.Msg($"First line in messages: {messages.First()}");
-			
-
+			// Check FIRST, log SECOND - Fix for null/empty list access bug
 			if (messages == null || messages.Count == 0)
 			{
-				MelonLogger.Msg($"❌ DialogueType '{type}' has no lines.");
+				MelonLogger.Warning($"❌ DialogueType '{type}' has no lines for {DisplayName}.");
 				if (returnMessage)
 					return type.ToString();
 
-				SendTextMessage($"Message Failed - no message found for {type}");
+				SendTextMessage($"[{DisplayName}]: Message unavailable ({type})");
 				return null;
 			}
+
+			MelonLogger.Msg($"Retrieved {messages.Count} dialogue lines for {type} from {DisplayName}");
 
 			// Pick a line
 			string line = (index < 0 || index >= messages.Count)
@@ -271,6 +273,21 @@ namespace Empire.NPC.S1API_NPCs
 
 			SendTextMessage(formatted);
 			return null;
+		}
+
+		/// <summary>
+		/// Safely sends a text message with validation to prevent empty/null messages.
+		/// </summary>
+		/// <param name="message">The message to send</param>
+		/// <param name="fallbackContext">Context information for logging if message is invalid</param>
+		protected void SendTextMessageSafe(string? message, string fallbackContext = "")
+		{
+			if (string.IsNullOrWhiteSpace(message))
+			{
+				MelonLogger.Warning($"[{DisplayName}] Attempted to send empty message. Context: {fallbackContext}");
+				return;
+			}
+			SendTextMessage(message);
 		}
 
 		public string GetDrugUnlockInfo()

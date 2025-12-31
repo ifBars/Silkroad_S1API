@@ -15,6 +15,11 @@ namespace Empire.NPC
         public static Dictionary<string, EmpireNPC> Buyers { get; set; } = new Dictionary<string, EmpireNPC>(); // Key: DealerId, Value: EmpireNPC Buyer
 		public static Dictionary<string, EmpireNPC> BuyersByDisplayName { get; set; } = new Dictionary<string, EmpireNPC>(); // Key: DealerId, Value: EmpireNPC Buyer
 		public static bool IsInitialized { get; set; } = false;
+        /// <summary>
+        /// True after UpdateCoroutine has finished processing all buyers (unlocking, intros, UnlockDrug calls complete).
+        /// Use this to wait before calling LoadQuests to avoid race conditions.
+        /// </summary>
+        public static bool AreContactsFullyProcessed { get; private set; } = false;
         //public static BlackmarketBuyer saveBuyer { get; set; }
         public static Dealer standardDealer { get; set; } = new Dealer { Name = "Blackmarket Buyer", Image = "EmpireIcon_quest.png" };
         private static bool _isUpdateCoroutineRunning = false;
@@ -59,7 +64,8 @@ namespace Empire.NPC
 			Buyers[npc.DealerId] = npc;
 			BuyersByDisplayName[npc.DisplayName] = npc;
             npc.IsInitialized = true;
-			npc.DealerSaveData.IsInitialized = true;    //	just to force serialization without text message hacks - didn't work
+			// Note: Do NOT set DealerSaveData.IsInitialized here - it's used to track if intro was sent in OnLoaded()
+			// The proper intro dialogue is sent in UpdateCoroutine based on IntroDone flag
 
 			MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}; Initialized: {npc.IsInitialized}");
 
@@ -87,7 +93,9 @@ namespace Empire.NPC
         public static void Reset()
         {
             Buyers.Clear();
+            BuyersByDisplayName.Clear();
             IsInitialized = false;
+            AreContactsFullyProcessed = false;
             //IsUnlocked = false;
             //BlackmarketBuyer.dealerDataIndex = 0;
             // Reset the dealer field to force re-initialization
@@ -96,108 +104,143 @@ namespace Empire.NPC
             MelonLogger.Msg("🧹 Empire Contacts state reset complete");
         }
 
+        /// <summary>
+        /// Process all buyers synchronously (unlock, UnlockDrug) and start async intro message sending.
+        /// This is called when all NPCs are registered.
+        /// </summary>
         public static void Update()
         {
-            // Prevent multiple coroutines from running
-            if (_isUpdateCoroutineRunning)
+            MelonLogger.Msg("🔄 Contacts.Update() - Starting synchronous buyer processing...");
+            
+            // Process buyers synchronously - this is critical for LoadQuests to work
+            ProcessBuyersSynchronously();
+            
+            // Mark as fully processed so LoadQuests can run
+            AreContactsFullyProcessed = true;
+            MelonLogger.Msg("✅ Contacts fully processed - buyers unlocked and drugs unlocked.");
+            
+            // Start async coroutine for sending intro messages (requires CustomNpcsReady)
+            if (!_isUpdateCoroutineRunning)
             {
-                MelonLogger.Msg("⚠️ Contacts Update coroutine already running, skipping...");
-                return;
+                _isUpdateCoroutineRunning = true;
+                MelonCoroutines.Start(SendIntroMessagesCoroutine());
             }
-
-            _isUpdateCoroutineRunning = true;
-            MelonCoroutines.Start(UpdateCoroutine());
         }
         
-
-        private static System.Collections.IEnumerator UpdateCoroutine()
+        /// <summary>
+        /// Synchronously process all buyers: check unlock requirements, set IsUnlocked, call UnlockDrug.
+        /// This runs immediately so LoadQuests has the data it needs.
+        /// </summary>
+        private static void ProcessBuyersSynchronously()
         {
-            while (!IsInitialized)
+            MelonLogger.Msg($"📋 Processing {Buyers.Count} buyers synchronously...");
+            
+            foreach (var buyer in Buyers.Values)
             {
-                yield return null;
-            }
-            try
-            {
-                // Melonlogger Test
-                //MelonLogger.Msg("Testing 101}");
-                foreach (var buyer in Buyers.Values)
+                try
                 {
-
                     bool canUnlock = buyer.UnlockRequirements == null ||
                                      !buyer.UnlockRequirements.Any() ||
                                      buyer.UnlockRequirements.All(req =>
                                          GetBuyer(req.Name)?.DealerSaveData.Reputation >= req.MinRep);
 
-					////Log the buyer name and unlock status
-					MelonLogger.Msg($"Buyer: {buyer.DisplayName}, Unlock Status: {canUnlock}");
-                    //If cannot unlock, log the requirements and the current reputation
-                    //if (!canUnlock)
-                    //{
-                    //    if (buyer.UnlockRequirements?.Any() == true)
-                    //    {
-                    //        foreach (var req in buyer.UnlockRequirements)
-                    //        {
-                    //            var unlockBuyer = GetBuyer(req.Name);
-                    //            if (unlockBuyer != null)
-                    //            {
-                    //                MelonLogger.Msg($"Unlock Requirement: {req.Name}, Current Reputation: {unlockBuyer.DealerSaveData.Reputation}, Required Reputation: {req.MinRep}");
-                    //            }
-                    //            else
-                    //            {
-                    //                MelonLogger.Msg($"Unlock Requirement: {req.Name} not found.");
-                    //            }
-                    //        }
-                    //    }
-                    //}
+                    MelonLogger.Msg($"Buyer: {buyer.DisplayName}, CanUnlock: {canUnlock}");
 
                     if (canUnlock)
                     {
-						MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} unlock requirements met. Initialized: {buyer.IsInitialized}, Unlocked: {buyer.IsUnlocked}, buyer.DealerSaveData.IntroDone: {buyer.DealerSaveData.IntroDone}");
-						if (!buyer.IsUnlocked)
+                        MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} unlock requirements met.");
+                        
+                        if (!buyer.IsUnlocked)
                         {
                             buyer.IsUnlocked = true;
-							
-                            if (buyer.DealerSaveData.IntroDone == false) // First time Intro
-							{
-								buyer.SendCustomMessage(DialogueType.Intro);
-								MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} intro sent.");
-								buyer.DealerSaveData.IntroDone = true; // Set IntroDone to true
-							}
+                            MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} is now unlocked.");
+                        }
 
-							MelonLogger.Msg($"✅ Dealer {buyer.DisplayName} is now unlocked.");
-						}
+                        if (buyer.Debt != null && buyer.Debt.TotalDebt > 0 && buyer.DealerSaveData.DebtRemaining > 0)
+                        {
+                            buyer.DebtManager = new DebtManager(buyer);
+                            MelonLogger.Msg($"💰 Dealer {buyer.DisplayName} has debt: {buyer.Debt.TotalDebt}");
+                        }
 
-						if (buyer.Debt != null && buyer.Debt.TotalDebt > 0 && buyer.DealerSaveData.DebtRemaining > 0)
-						{
-							buyer.DebtManager = new DebtManager(buyer);
-							MelonLogger.Msg($"❌ Dealer {buyer.DisplayName} is locked due to debt: {buyer.Debt.TotalDebt}");
-						}
-
-						if (!buyer.IsInitialized)
+                        if (!buyer.IsInitialized)
                         {
                             buyer.IsInitialized = true;
                             MelonLogger.Msg($"✅ Initialized dealer: {buyer.DisplayName}");
                         }
+                        
+                        // Critical: Unlock drugs so quests can be generated
                         buyer.UnlockDrug();
                     }
                     else
                     {
-                        MelonLogger.Msg($"⚠️ Dealer {buyer.DisplayName} is locked (unlock requirements not met)");
+                        MelonLogger.Msg($"🔒 Dealer {buyer.DisplayName} is locked (unlock requirements not met)");
                     }
-
-                    //MelonLogger.Msg($"✅ Contacts.Buyers now contains {Buyers.Count} buyers.");
-                    //IsUnlocked = true;
                 }
+                catch (Exception ex)
+                {
+                    MelonLogger.Error($"❌ Error processing buyer {buyer.DisplayName}: {ex}");
+                }
+            }
+            
+            MelonLogger.Msg($"📋 Finished synchronous processing of {Buyers.Count} buyers.");
+        }
 
+        /// <summary>
+        /// Async coroutine to send intro messages after CustomNpcsReady is true.
+        /// This runs separately from the synchronous processing.
+        /// </summary>
+        private static System.Collections.IEnumerator SendIntroMessagesCoroutine()
+        {
+            MelonLogger.Msg("📨 SendIntroMessagesCoroutine started - waiting for CustomNpcsReady...");
+            
+            // Wait for S1API custom NPCs to be ready for messaging
+            bool customNpcsReadyInitial = false;
+            try
+            {
+                customNpcsReadyInitial = S1API.Internal.Patches.NPCPatches.CustomNpcsReady;
+                MelonLogger.Msg($"⏳ CustomNpcsReady initial value: {customNpcsReadyInitial}");
+            }
+            catch (System.Exception ex)
+            {
+                MelonLogger.Error($"❌ Failed to access S1API.Internal.Patches.NPCPatches.CustomNpcsReady: {ex.Message}");
+                _isUpdateCoroutineRunning = false;
+                yield break;
+            }
+            
+            while (!S1API.Internal.Patches.NPCPatches.CustomNpcsReady)
+            {
+                yield return null;
+            }
+            MelonLogger.Msg("✅ S1API CustomNpcsReady - Now sending intro messages...");
+            
+            try
+            {
+                foreach (var buyer in Buyers.Values)
+                {
+                    // Only send intro to unlocked buyers who haven't received it yet
+                    if (buyer.IsUnlocked && buyer.DealerSaveData.IntroDone == false)
+                    {
+                        try
+                        {
+                            buyer.SendCustomMessage(DialogueType.Intro);
+                            MelonLogger.Msg($"📨 Dealer {buyer.DisplayName} intro sent.");
+                            buyer.DealerSaveData.IntroDone = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            MelonLogger.Error($"❌ Failed to send intro to {buyer.DisplayName}: {ex}");
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
-                MelonLogger.Error($"❌ Unexpected error during Update: {ex}");
+                MelonLogger.Error($"❌ Unexpected error during intro messages: {ex}");
             }
             finally
             {
-                // Reset the flag when coroutine completes
                 _isUpdateCoroutineRunning = false;
+                MelonLogger.Msg("📨 SendIntroMessagesCoroutine completed.");
             }
         }
     }
