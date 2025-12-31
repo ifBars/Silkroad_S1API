@@ -197,17 +197,17 @@ namespace Empire.NPC
             bool customNpcsReadyInitial = false;
             try
             {
-                customNpcsReadyInitial = S1API.Internal.Patches.NPCPatches.CustomNpcsReady;
+                customNpcsReadyInitial = S1API.Entities.NPC.CustomNpcsReady;
                 MelonLogger.Msg($"⏳ CustomNpcsReady initial value: {customNpcsReadyInitial}");
             }
             catch (System.Exception ex)
             {
-                MelonLogger.Error($"❌ Failed to access S1API.Internal.Patches.NPCPatches.CustomNpcsReady: {ex.Message}");
+                MelonLogger.Error($"❌ Failed to access NPC.CustomNpcsReady: {ex.Message}");
                 _isUpdateCoroutineRunning = false;
                 yield break;
             }
             
-            while (!S1API.Internal.Patches.NPCPatches.CustomNpcsReady)
+            while (!S1API.Entities.NPC.CustomNpcsReady)
             {
                 yield return null;
             }
