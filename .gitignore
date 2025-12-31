@@ -115,3 +115,10 @@ Desktop.ini
 
 # VSCode
 .vscode/
+
+###############################
+# Local Configuration
+###############################
+
+# Local build configuration (user-specific paths)
+local.build.props
