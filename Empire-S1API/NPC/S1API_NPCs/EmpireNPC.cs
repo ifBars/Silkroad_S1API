@@ -8,12 +8,11 @@ using Empire.Utilities.EffectHelpers;
 using Empire.Utilities.QualityHelpers;
 using MelonLoader;
 using S1API.Entities;
-using S1API.Internal.Utils;
+using S1API.Utils;
 using S1API.Saveables;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using UnityEngine;
 
 namespace Empire.NPC.S1API_NPCs
@@ -119,37 +118,37 @@ namespace Empire.NPC.S1API_NPCs
 		}
 
 		//Send the message to the player using the phone app or return the message string only if returnMessage is true
-		public string? SendCustomMessage(string messageType, string product = "", int amount = 0, string quality = "", List<string>? necessaryEffects = null, List<string>? optionalEffects = null, int dollar = 0, bool returnMessage = false, int index = -1)
+		public string? SendCustomMessage(string message, string product = "", int amount = 0, string quality = "", List<string>? necessaryEffects = null, List<string>? optionalEffects = null, int dollar = 0, bool returnMessage = false, int index = -1)
 		{
 			// Use case-insensitive property lookup to avoid simple casing mismatches
-			var prop = Dialogue.GetType().GetProperty(messageType, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-			List<string>? messages = prop?.GetValue(Dialogue) as List<string>;
+			//var prop = Dialogue.GetType().GetProperty(messageType, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+			//List<string>? messages = prop?.GetValue(Dialogue) as List<string>;
 
 			// If messages is null or empty, log and fallback
-			if (messages == null || messages.Count == 0)
-			{
-				MelonLogger.Msg($"❌ Message type '{messageType}' not found in Dialogue or contains no lines.");
-				if (returnMessage)
-				{
-					return messageType;
-				}
-				else
-				{
-					SendTextMessage($"Message Failed - no message found for {messageType}");    //	keep it for debugging purposes
-					return null;
-				}
-			}
+			//if (messages == null || messages.Count == 0)
+			//{
+			//	MelonLogger.Msg($"❌ Message type '{messageType}' not found in Dialogue or contains no lines.");
+			//	if (returnMessage)
+			//	{
+			//		return messageType;
+			//	}
+			//	else
+			//	{
+			//		SendTextMessage($"Message Failed - no message found for {messageType}");    //	keep it for debugging purposes
+			//		return null;
+			//	}
+			//}
 
-			string line = "";
+			string line = message;
 			// Safe random selection (messages.Count > 0 guaranteed here)
-			if (index < 0 || index >= messages.Count)
-			{
-				line = messages[RandomUtils.RangeInt(0, messages.Count)];
-			}
-			else
-			{
-				line = messages[index];
-			}
+			//if (index < 0 || index >= messages.Count)
+			//{
+			//	line = messages[RandomUtils.RangeInt(0, messages.Count)];
+			//}
+			//else
+			//{
+			//	line = messages[index];
+			//}
 
 			string qualityColor = "#FFFFFF"; // fallback
 
@@ -179,13 +178,13 @@ namespace Empire.NPC.S1API_NPCs
 
 			formatted = formatted.Replace("{optionalEffects}", effects);
 
-			if (messageType.Equals("accept", StringComparison.OrdinalIgnoreCase))
-			{
-				if (CurfewDeal)
-					formatted += "\nRemember that we only accept packages under cover of night.";
-				else
-					formatted += "\nWe'll take that delivery any time!";
-			}
+			//if (messageType.Equals("accept", StringComparison.OrdinalIgnoreCase))
+			//{
+			//	if (CurfewDeal)
+			//		formatted += "\nRemember that we only accept packages under cover of night.";
+			//	else
+			//		formatted += "\nWe'll take that delivery any time!";
+			//}
 
 			if (returnMessage)
 			{
@@ -210,7 +209,7 @@ namespace Empire.NPC.S1API_NPCs
 			bool returnMessage = false,
 			int index = -1)
 		{
-			List<string> messages = GetDialogueLines(type);
+			List<string>? messages = GetDialogueLines(type);
 
 			MelonLogger.Msg($"Retrieved Dialogue lines for {type} for {DisplayName}: {messages?.Count}");
 			MelonLogger.Msg($"First line in messages: {messages.First()}");

@@ -415,7 +415,7 @@ namespace Empire.Phone
                 }
                 
                 var pendingBuyers = Contacts.Buyers.Values
-                    .Where(b => !b.IsInitialized &&
+                    .Where(b => !b.IsUnlocked &&
                                 b.UnlockRequirements != null &&
                                 b.UnlockRequirements.Any(r => r.Name == selectedBuyer.DisplayName && r.MinRep > selectedBuyer.DealerSaveData.Reputation))
                     .ToList();

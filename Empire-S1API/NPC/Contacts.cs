@@ -59,12 +59,12 @@ namespace Empire.NPC
 			Buyers[npc.DealerId] = npc;
 			BuyersByDisplayName[npc.DisplayName] = npc;
             npc.IsInitialized = true;
-			npc.DealerSaveData.IsInitialized = true;    //	just to force serialization without text message hacks
+			npc.DealerSaveData.IsInitialized = true;    //	just to force serialization without text message hacks - didn't work
 
 			MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}; Initialized: {npc.IsInitialized}");
 
 			// Initialization check
-			if (Buyers.Count == AllEmpireNPCs.Count)
+			if (Buyers.Count >= AllEmpireNPCs.Count)    //  >= just in case
 			{
 				IsInitialized = true;
 				MelonLogger.Msg($"🎉 All Empire NPCs registered ({Buyers.Count}/{AllEmpireNPCs.Count}). Initialization complete.");
