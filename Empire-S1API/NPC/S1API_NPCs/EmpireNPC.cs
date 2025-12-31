@@ -27,7 +27,7 @@ namespace Empire.NPC.S1API_NPCs
 		public new abstract string LastName { get; }
 		public virtual string DisplayName => $"{FirstName} {LastName}";
 		public virtual string Image => $"{DealerId}.png";
-		public abstract int Tier { get;  }
+		public abstract int Tier { get; }
 		public abstract List<UnlockRequirement> UnlockRequirements { get; protected set; }
 		public abstract List<string> DealDays { get; protected set; }
 		public abstract bool CurfewDeal { get; protected set; }

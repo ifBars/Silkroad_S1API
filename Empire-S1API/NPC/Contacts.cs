@@ -1,8 +1,6 @@
 ﻿using Empire.DebtHelpers;
-using Empire.NPC.Data;
 using Empire.NPC.Data.Enums;
 using Empire.NPC.S1API_NPCs;
-using Empire.NPC.SaveData;
 using MelonLoader;
 using System;
 using System.Collections.Generic;
@@ -69,14 +67,20 @@ namespace Empire.NPC
 
 			MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}; Initialized: {npc.IsInitialized}");
 
-			// Initialization check
-			if (Buyers.Count >= AllEmpireNPCs.Count)    //  >= just in case
-			{
-				IsInitialized = true;
-				MelonLogger.Msg($"🎉 All Empire NPCs registered ({Buyers.Count}/{AllEmpireNPCs.Count}). Initialization complete.");
-                Contacts.Update();
-                MelonLogger.Msg("🔄 Contacts Update called after all NPCs registered.");
+            if (AllEmpireNPCs != null)
+            {
+				if (Buyers.Count >= AllEmpireNPCs.Count)    //  >= just in case
+				{
+					IsInitialized = true;
+					MelonLogger.Msg($"🎉 All Empire NPCs registered ({Buyers.Count}/{AllEmpireNPCs.Count}). Initialization complete.");
+					Contacts.Update();
+					MelonLogger.Msg("🔄 Contacts Update called after all NPCs registered.");
+				}
 			}
+            else
+            {
+                MelonLogger.Msg($"AllEmpireNPCs null.  Something borked.");
+            }
 		}
 
 		public static EmpireNPC? GetBuyer(string dealerName)

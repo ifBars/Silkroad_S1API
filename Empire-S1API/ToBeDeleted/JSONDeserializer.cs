@@ -64,7 +64,7 @@
 //            {
 //                MelonLogger.Error($"❌ Unexpected error during initialization: {ex}");
 //            }
-            
+
 //            // Load additional JSON files in the Empire folder
 //            string empireFolder = Path.Combine(MelonEnvironment.ModsDirectory, "Empire");
 //            try
@@ -74,7 +74,7 @@
 
 //                MelonLogger.Msg($"Found {additionalFiles.Count()} additional JSON files to process.");
 
-//				foreach (var file in additionalFiles)
+//                foreach (var file in additionalFiles)
 //                {
 //                    try
 //                    {

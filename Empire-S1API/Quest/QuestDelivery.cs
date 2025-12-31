@@ -11,7 +11,7 @@ using S1API.Saveables;
 using System.Collections.Generic;
 using S1API.Console;
 using S1API.GameTime;
-using S1API.Internal.Utils;
+using S1API.Utils;
 using S1API.Quests.Constants;
 using Empire.Phone;
 using Empire.NPC;
@@ -325,8 +325,10 @@ namespace Empire.Quest
                     props = meth.GetProperties();
                 else if (productDef is CocaineDefinition coke)
                     props = coke.GetProperties();
+				//else if (productDef is ShroomDefinition shroom)   //  not implemented yet
+				//    props = shroom.GetProperties();
 
-                MelonLogger.Msg($"count : {props.Count}");
+				MelonLogger.Msg($"count : {props.Count}");
                 var properties = new List<string>();
                 if (props.Count > 0)
                 {
@@ -417,7 +419,11 @@ namespace Empire.Quest
             {
                 return "cocaine";
             }
-            else
+   //         else if (productDef is ShroomDefinition)  //  not implemented yet
+   //         {
+   //             return "shroom";
+			//}
+			else
             {
                 return null;
             }
@@ -598,10 +604,7 @@ namespace Empire.Quest
                 MelonLogger.Error($"❌ Unknown source: {source}.");
                 return;
             }
-            
-            
-            
-            
+
             MelonLogger.Msg($"   Rewarded : ${Data.Reward} and Rep {Data.RepReward} and Xp (if completed) {Data.XpReward} from {Data.DealerName}");
 
             EmpirePhoneApp.Instance.OnQuestComplete();
