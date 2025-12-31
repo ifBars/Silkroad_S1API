@@ -16,16 +16,21 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Il2Cpp|Any CPU = Il2Cpp|Any CPU
 		Mono|Any CPU = Mono|Any CPU
+		CrossCompat|Any CPU = CrossCompat|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{4F51EA68-B08B-4D76-9CAA-B365C841D09C}.Il2Cpp|Any CPU.ActiveCfg = Il2Cpp|Any CPU
 		{4F51EA68-B08B-4D76-9CAA-B365C841D09C}.Il2Cpp|Any CPU.Build.0 = Il2Cpp|Any CPU
 		{4F51EA68-B08B-4D76-9CAA-B365C841D09C}.Mono|Any CPU.ActiveCfg = Mono|Any CPU
 		{4F51EA68-B08B-4D76-9CAA-B365C841D09C}.Mono|Any CPU.Build.0 = Mono|Any CPU
+		{4F51EA68-B08B-4D76-9CAA-B365C841D09C}.CrossCompat|Any CPU.ActiveCfg = CrossCompat|Any CPU
+		{4F51EA68-B08B-4D76-9CAA-B365C841D09C}.CrossCompat|Any CPU.Build.0 = CrossCompat|Any CPU
 		{00481701-C528-4410-AB57-9C31B9FB4F96}.Il2Cpp|Any CPU.ActiveCfg = Release|Any CPU
 		{00481701-C528-4410-AB57-9C31B9FB4F96}.Il2Cpp|Any CPU.Build.0 = Release|Any CPU
 		{00481701-C528-4410-AB57-9C31B9FB4F96}.Mono|Any CPU.ActiveCfg = Debug|Any CPU
 		{00481701-C528-4410-AB57-9C31B9FB4F96}.Mono|Any CPU.Build.0 = Debug|Any CPU
+		{00481701-C528-4410-AB57-9C31B9FB4F96}.CrossCompat|Any CPU.ActiveCfg = Debug|Any CPU
+		{00481701-C528-4410-AB57-9C31B9FB4F96}.CrossCompat|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
