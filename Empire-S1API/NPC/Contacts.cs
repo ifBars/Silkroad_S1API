@@ -1,8 +1,6 @@
 ﻿using Empire.DebtHelpers;
-using Empire.NPC.Data;
 using Empire.NPC.Data.Enums;
 using Empire.NPC.S1API_NPCs;
-using Empire.NPC.SaveData;
 using MelonLoader;
 using System;
 using System.Collections.Generic;
@@ -15,8 +13,7 @@ namespace Empire.NPC
         public static Dictionary<string, EmpireNPC> Buyers { get; set; } = new Dictionary<string, EmpireNPC>(); // Key: DealerId, Value: EmpireNPC Buyer
 		public static Dictionary<string, EmpireNPC> BuyersByDisplayName { get; set; } = new Dictionary<string, EmpireNPC>(); // Key: DealerId, Value: EmpireNPC Buyer
 		public static bool IsInitialized { get; set; } = false;
-        //public static BlackmarketBuyer saveBuyer { get; set; }
-        public static Dealer standardDealer { get; set; } = new Dealer { Name = "Blackmarket Buyer", Image = "EmpireIcon_quest.png" };
+
         private static bool _isUpdateCoroutineRunning = false;
 
 		public static readonly List<Type> AllEmpireNPCs = typeof(EmpireNPC)
@@ -63,14 +60,20 @@ namespace Empire.NPC
 
 			MelonLogger.Msg($"✅ Registered Empire NPC: {npc.DealerId}; Initialized: {npc.IsInitialized}");
 
-			// Initialization check
-			if (Buyers.Count >= AllEmpireNPCs.Count)    //  >= just in case
-			{
-				IsInitialized = true;
-				MelonLogger.Msg($"🎉 All Empire NPCs registered ({Buyers.Count}/{AllEmpireNPCs.Count}). Initialization complete.");
-                Contacts.Update();
-                MelonLogger.Msg("🔄 Contacts Update called after all NPCs registered.");
+            if (AllEmpireNPCs != null)
+            {
+				if (Buyers.Count >= AllEmpireNPCs.Count)    //  >= just in case
+				{
+					IsInitialized = true;
+					MelonLogger.Msg($"🎉 All Empire NPCs registered ({Buyers.Count}/{AllEmpireNPCs.Count}). Initialization complete.");
+					Contacts.Update();
+					MelonLogger.Msg("🔄 Contacts Update called after all NPCs registered.");
+				}
 			}
+            else
+            {
+                MelonLogger.Msg($"AllEmpireNPCs null.  Something borked.");
+            }
 		}
 
 		public static EmpireNPC? GetBuyer(string dealerName)
