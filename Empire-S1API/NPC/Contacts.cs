@@ -19,7 +19,7 @@ namespace Empire.NPC
         /// </summary>
         public static bool AreContactsFullyProcessed { get; private set; } = false;
         //public static BlackmarketBuyer saveBuyer { get; set; }
-        public static Dealer standardDealer { get; set; } = new Dealer { Name = "Blackmarket Buyer", Image = "EmpireIcon_quest.png" };
+        // public static Dealer standardDealer { get; set; } = new Dealer { Name = "Blackmarket Buyer", Image = "EmpireIcon_quest.png" };
         private static bool _isUpdateCoroutineRunning = false;
 
 		public static readonly List<Type> AllEmpireNPCs = typeof(EmpireNPC)
