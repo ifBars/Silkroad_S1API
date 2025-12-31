@@ -745,21 +745,21 @@ namespace Empire.Phone
         }
         private System.Collections.IEnumerator WaitForBuyerAndInitialize()
         {
-            //float timeout = 5f;
-            //float waited = 0f;
-
             MelonLogger.Msg("PhoneApp-WaitForBuyerAndInitialize-Waiting for Contacts to be initialized...");
-            while ((!Contacts.IsInitialized)) // && waited < timeout)
+            
+            // First wait for all NPCs to be registered
+            while (!Contacts.IsInitialized)
             {
-                //waited += Time.deltaTime;
-                yield return null; // Wait for the next frame
+                yield return null;
             }
+            MelonLogger.Msg("PhoneApp: Contacts.IsInitialized is true, now waiting for full processing...");
 
-            //if (!Contacts.IsInitialized)
-            //{
-            //    //MelonLogger.Warning("⚠️ PhoneApp-Timeout reached. Contacts are still not unlocked.");
-            //    yield break; // Exit the coroutine
-            //}
+            // CRITICAL: Wait for UpdateCoroutine to complete processing (unlocks, intros, UnlockDrug calls)
+            // This prevents the race condition where LoadQuests runs before UnlockedDrugs is populated
+            while (!Contacts.AreContactsFullyProcessed)
+            {
+                yield return null;
+            }
 
             MelonLogger.Msg("Dealers and Buyers initialized successfully.");
             LoadQuests();
@@ -803,6 +803,14 @@ namespace Empire.Phone
             {
                 string currentDay = TimeManager.CurrentDay.ToString();
                 MelonLogger.Msg($"Checking dealer {buyer.DisplayName} for quests on day {currentDay}.");
+				
+                // Skip buyers that aren't unlocked yet (unlock requirements not met)
+                if (!buyer.IsUnlocked)
+                {
+                    MelonLogger.Msg($"Skipping dealer {buyer.DisplayName}: Not unlocked yet (unlock requirements not met).");
+                    continue;
+                }
+                
 				if (buyer.DealDays == null || !buyer.DealDays.Contains(currentDay) || !buyer.IsInitialized)
                 {
                     MelonLogger.Msg($"Skipping dealer {buyer.DisplayName}: DealDays not set or does not include {currentDay}, or dealer not initialized: IsInitialized -> {buyer.IsInitialized}.");

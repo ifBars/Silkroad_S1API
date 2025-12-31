@@ -12,7 +12,7 @@
         <RepositoryUrl>https://github.com/pranjalchakraborty/Silkroad_S1API.git</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Nullable>enable</Nullable>
-        <Configurations>Mono;Il2Cpp</Configurations>
+        <Configurations>Mono;Il2Cpp;CrossCompat</Configurations>
         <Platforms>AnyCPU</Platforms>
         <RootNamespace>Empire</RootNamespace>
     </PropertyGroup>
@@ -24,8 +24,20 @@
 		<DefineConstants>Mono</DefineConstants>
 	</PropertyGroup>
 	
+	<!-- CrossCompat configuration (default for S1API.Forked) -->
+	<PropertyGroup Condition="'$(Configuration)'=='CrossCompat'">
+		<DefineConstants>CROSS_COMPAT</DefineConstants>
+		<AssemblyName>Empire-S1API</AssemblyName>
+		<!-- CrossCompat uses Mono assemblies but without Assembly-CSharp for cross-compatibility -->
+		<!-- Uses properties from local.build.props, but MelonLoader path may need to be net35 instead of net6 -->
+		<CrossCompatMelonLoaderPath Condition="'$(CrossCompatMelonLoaderPath)'==''">$(LocalMonoDeploymentPath)\MelonLoader\net35</CrossCompatMelonLoaderPath>
+	</PropertyGroup>
+	
     <!-- IL2CPP Specific Deps -->
     <ItemGroup Condition="'$(Configuration)' == 'Il2Cpp'">
+        <Reference Include="0Harmony">
+            <HintPath>$(MelonLoaderAssembliesPath)\0Harmony.dll</HintPath>
+        </Reference>
         <Reference Include="Il2CppInterop.Runtime">
             <HintPath>$(MelonLoaderAssembliesPath)\Il2CppInterop.Runtime.dll</HintPath>
         </Reference>
@@ -75,6 +87,9 @@
 
     <!-- Mono Specific Deps -->
     <ItemGroup Condition="'$(Configuration)' == 'Mono'">
+        <Reference Include="0Harmony">
+            <HintPath>$(MelonLoaderAssembliesPath)\0Harmony.dll</HintPath>
+        </Reference>
         <Reference Include="Assembly-CSharp">
             <HintPath>$(MonoAssembliesPath)\Assembly-CSharp.dll</HintPath>
         </Reference>
@@ -106,6 +121,37 @@
             <HintPath>$(MonoAssembliesPath)\UnityEngine.InputLegacyModule.dll</HintPath>
         </Reference>
     </ItemGroup>
+
+    <!-- CrossCompat Specific Deps (Mono without Assembly-CSharp for cross-compatibility) -->
+    <ItemGroup Condition="'$(Configuration)'=='CrossCompat'">
+        <Reference Include="0Harmony">
+            <HintPath>$(CrossCompatMelonLoaderPath)\0Harmony.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine">
+            <HintPath>$(MonoAssembliesPath)\UnityEngine.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+            <HintPath>$(MonoAssembliesPath)\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.UI">
+            <HintPath>$(MonoAssembliesPath)\UnityEngine.UI.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.UIModule">
+            <HintPath>$(MonoAssembliesPath)\UnityEngine.UIModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.JSONSerializeModule">
+            <HintPath>$(MonoAssembliesPath)\UnityEngine.JSONSerializeModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.TextRenderingModule">
+            <HintPath>$(MonoAssembliesPath)\UnityEngine.TextRenderingModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.ImageConversionModule">
+            <HintPath>$(MonoAssembliesPath)\UnityEngine.ImageConversionModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.InputLegacyModule">
+            <HintPath>$(MonoAssembliesPath)\UnityEngine.InputLegacyModule.dll</HintPath>
+        </Reference>
+    </ItemGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="NPC\S1API_NPCs\Icons\*.png" />
 	</ItemGroup>
@@ -113,15 +159,20 @@
     <!-- Shared Deps -->
     <ItemGroup>
         <!-- <PackageReference Include="S1API" Version="1.2.4" />-->
-       <Reference Include="0Harmony">
-           <HintPath>$(MelonLoaderAssembliesPath)\0Harmony.dll</HintPath>
-       </Reference>
        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
        <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
+    </ItemGroup>
+
+    <!-- S1API.Forked: Use NuGet package when not using local assembly -->
+    <ItemGroup Condition="'$(UseLocalS1APIForked)' != 'true'">
        <PackageReference Include="S1API.Forked" Version="2.8.8" />
-       
+    </ItemGroup>
 
-
+    <!-- S1API.Forked: Use local assembly reference when enabled -->
+    <ItemGroup Condition="'$(UseLocalS1APIForked)' == 'true'">
+       <Reference Include="S1API.Forked">
+           <HintPath>$(LocalS1APIForkedPath)</HintPath>
+       </Reference>
     </ItemGroup>
 
 	<!--Testing harness -->

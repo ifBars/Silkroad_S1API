@@ -1,5 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Imports any local build properties over the GitHub repository one. -->
+  <Import Project="../local.build.props" Condition="Exists('../local.build.props')" />
+
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -17,13 +20,13 @@
 
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Schedule I_MONO\MelonLoader\net6\0Harmony.dll</HintPath>
+      <HintPath>$(MelonLoaderAssembliesPath)\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Schedule I_MONO\Schedule I_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(MonoAssembliesPath)\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Schedule I_MONO\Schedule I_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(MonoAssembliesPath)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
   </ItemGroup>
 

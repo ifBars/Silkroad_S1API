@@ -198,6 +198,55 @@ namespace Empire.Quest
             };
         }
 
+        /// <summary>
+        /// Safely sends a message from the buyer NPC with null checks and error handling.
+        /// </summary>
+        private void SendBuyerMessage(DialogueType type, string context = "")
+        {
+            if (buyer == null)
+            {
+                MelonLogger.Warning($"Cannot send {type} message: buyer is null. Context: {context}");
+                return;
+            }
+            
+            try
+            {
+                buyer.SendCustomMessage(type, Data.ProductID, (int)Data.RequiredAmount, 
+                    Data.Quality, Data.NecessaryEffects, Data.OptionalEffects, Data.Reward);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error($"Failed to send {type} message from {buyer.DisplayName}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Safely sends a custom string message from the buyer NPC with null checks.
+        /// </summary>
+        private void SendBuyerCustomMessage(string message, string context = "")
+        {
+            if (buyer == null)
+            {
+                MelonLogger.Warning($"Cannot send custom message: buyer is null. Context: {context}");
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                MelonLogger.Warning($"Cannot send empty message from {buyer.DisplayName}. Context: {context}");
+                return;
+            }
+            
+            try
+            {
+                buyer.SendCustomMessage(message);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error($"Failed to send custom message from {buyer.DisplayName}: {ex.Message}");
+            }
+        }
+
         private void CheckDelivery()
         {
             if (!QuestActive || Active != this)
@@ -224,11 +273,11 @@ namespace Empire.Quest
             }
             MelonLogger.Msg($"Expecting ProductID: {Data.ProductID}, RequiredAmount: {Data.RequiredAmount}");
             // If buyer.CurfewDeal is true and TimeManager.IsNight is false, return and Log
-            if (buyer.CurfewDeal && !TimeManager.IsNight)
+            if (buyer != null && buyer.CurfewDeal && !TimeManager.IsNight)
             {
                 MelonLogger.Msg("❌ Curfew deal is true but it is not night. Cannot deliver.");
                 //ToDO - Shift to JSON
-                buyer.SendCustomMessage("Deliveries only after Curfew.");
+                SendBuyerCustomMessage("Deliveries only after Curfew.", "curfew check");
                 return;
             }
 
@@ -245,7 +294,7 @@ namespace Empire.Quest
                 var item = slot.ItemInstance as ProductInstance;
                 if (item == null)
                 {
-                    buyer.SendCustomMessage("This is not even a product...");
+                    SendBuyerCustomMessage("This is not even a product...", "invalid product instance");
                     MelonLogger.Warning("⚠️ Item is not a ProductInstance, skipping...");
                     continue;
                 }
@@ -265,7 +314,7 @@ namespace Empire.Quest
                 if (productType != Data.ProductID)
                 {
                     MelonLogger.Error($"❌ Product type mismatch: {productType} != {Data.ProductID}");
-                    buyer.SendCustomMessage("This is not the drug type I ordered.");
+                    SendBuyerCustomMessage("This is not the drug type I ordered.", "product type mismatch");
                     continue;
                 }
 
@@ -297,8 +346,8 @@ namespace Empire.Quest
                 if (!Data.NecessaryEffects.All(effect => properties.Contains(effect.Trim().ToLower())))
                 {
                     MelonLogger.Error($"❌ Effect type mismatch"); 
-                    //ToDO - SHift to JSON
-                    buyer.SendCustomMessage("All the required necessary effects are not present.");
+                    //ToDO - Shift to JSON
+                    SendBuyerCustomMessage("All the required necessary effects are not present.", "missing required effects");
                     continue;
                 }
                 var quality = item?.Quality ?? 0;
@@ -310,8 +359,8 @@ namespace Empire.Quest
                 if (qualityNumber < GetQualityNumber(Data.Quality))
                 {
                     MelonLogger.Error($"❌ Quality mismatch: {quality} < {GetQualityNumber(Data.Quality)} or {quality} > {GetQualityNumber(Data.Quality)}");
-                    //ToDO - SHift to JSON
-                    buyer.SendCustomMessage("The quality of the product is worse than what I ordered.");
+                    //ToDO - Shift to JSON
+                    SendBuyerCustomMessage("The quality of the product is worse than what I ordered.", "quality too low");
                     continue;
                 }
                 if (isProductInstance)
@@ -339,8 +388,7 @@ namespace Empire.Quest
             }
             if (Data.RequiredAmount <= 0 && deliveryEntry.State==QuestState.Active)
             {
-                //MelonLogger.Msg("Test2");
-                buyer.SendCustomMessage(DialogueType.Success, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects,Data.Reward);
+                SendBuyerMessage(DialogueType.Success, "delivery complete");
                 MelonLogger.Msg("❌ No required amount to deliver. Quest done.");
                 
                 deliveryEntry.Complete();
@@ -350,7 +398,7 @@ namespace Empire.Quest
             }
             else if (Data.RequiredAmount > 0)
             {
-                buyer.SendCustomMessage(DialogueType.Incomplete, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
+                SendBuyerMessage(DialogueType.Incomplete, "partial delivery");
                 MelonLogger.Msg($"Continue delivery. Remaining amount: {Data.RequiredAmount}");
             }
         }
@@ -473,26 +521,35 @@ namespace Empire.Quest
                 Data.Reward = -Data.Penalties[0];
                 Data.RepReward = -Data.Penalties[1];
                 Money.ChangeCashBalance(Data.Reward);
-                buyer.GiveReputation((int)Data.RepReward);
-                buyer.SendCustomMessage(DialogueType.Expire, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
+                if (buyer != null)
+                {
+                    buyer.GiveReputation((int)Data.RepReward);
+                    SendBuyerMessage(DialogueType.Expire, "quest expired");
+                }
             }
             else if (source == "Failed")
             {
                 Data.Reward = -Data.Penalties[0];
                 Data.RepReward = -Data.Penalties[1];
                 Money.ChangeCashBalance(Data.Reward);
-                buyer.GiveReputation((int)Data.RepReward);
-                buyer.SendCustomMessage(DialogueType.Fail, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
+                if (buyer != null)
+                {
+                    buyer.GiveReputation((int)Data.RepReward);
+                    SendBuyerMessage(DialogueType.Fail, "quest failed");
+                }
             }
             else if (source == "Completed")
             {
                 Data.RepReward += (int)(Data.Reward * Data.RepMult);
                 Data.XpReward += (int)(Data.Reward * Data.XpMult);
-                buyer.GiveReputation((int)Data.RepReward);
+                if (buyer != null)
+                {
+                    buyer.GiveReputation((int)Data.RepReward);
+                    buyer.IncreaseCompletedDeals(1);
+                    buyer.UnlockDrug();
+                    SendBuyerMessage(DialogueType.Reward, "quest completed");
+                }
                 ConsoleHelper.GiveXp(Data.XpReward);
-                buyer.SendCustomMessage(DialogueType.Reward, Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects, Data.Reward);
-                buyer.IncreaseCompletedDeals(1);
-                buyer.UnlockDrug();
                 Contacts.Update();
                 Complete();
                 QuestActive = false;
@@ -513,20 +570,28 @@ namespace Empire.Quest
                         var temp1 = Data.Reward - (int)(buyer.DealerSaveData.DebtRemaining / buyer.Debt.ProductBonus);
                         var temp2 = buyer.DealerSaveData.DebtRemaining;
                         buyer.DealerSaveData.DebtRemaining = 0;
-                        //buyer.SendCustomMessage("Congrats! You Paid off the debt.");
                         MelonLogger.Msg($"   Paid off debt to {buyer.DisplayName}");
                         Money.ChangeCashBalance(temp1);
-                        buyer.DebtManager.SendDebtMessage((int)temp2, "deal");
+                        if (buyer.DebtManager != null)
+                        {
+                            buyer.DebtManager.SendDebtMessage((int)temp2, "deal");
+                        }
                     }
                     else
                     {
                         MelonLogger.Msg($"   Paid off debt: ${Data.Reward} to {buyer.DisplayName}");
                         buyer.DealerSaveData.DebtRemaining -= buyer.Debt.ProductBonus * Data.Reward;
                         buyer.DealerSaveData.DebtPaidThisWeek += buyer.Debt.ProductBonus * Data.Reward;
-                        buyer.DebtManager.SendDebtMessage((int) (Data.Reward * buyer.Debt.ProductBonus), "deal");
+                        if (buyer.DebtManager != null)
+                        {
+                            buyer.DebtManager.SendDebtMessage((int) (Data.Reward * buyer.Debt.ProductBonus), "deal");
+                        }
                     }
                     
-                    buyer.DebtManager.CheckIfPaidThisWeek();
+                    if (buyer.DebtManager != null)
+                    {
+                        buyer.DebtManager.CheckIfPaidThisWeek();
+                    }
                 }
                 else
                 {
