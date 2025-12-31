@@ -1,7 +1,7 @@
 ﻿using Empire;
-using Empire.NPC.S1API_NPCs;
+using Empire.NPC;
+using Empire.Phone;
 using MelonLoader;
-using S1API.Saveables;
 
 [assembly: MelonInfo(typeof(MyMod), "Empire (Forked by Kaen01)", "2.0", "Aracor")]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -20,9 +20,11 @@ namespace Empire
         {
             if (sceneName == "Main")
             {
-                //MelonLogger.Msg("🧹 Resetting Empire static state after Main scene unload");
-                //EmpirePhoneApp.Reset();
-                //Contacts.Reset();
+                MelonLogger.Msg("🧹 Resetting Empire static state after Main scene unload");
+				if (EmpirePhoneApp.Instance != null) 
+                    EmpirePhoneApp.Reset();
+
+                Contacts.Reset();
                 
             }
         }
@@ -31,12 +33,14 @@ namespace Empire
         {
             if (sceneName == "Main")
             {
-				// Also reset on initialization to be safe
-				//MelonLogger.Msg("🧹 Resetting Empire static state after Main scene initialization");
-				//EmpirePhoneApp.Reset();
-				//Contacts.Reset();
+                // Also reset on initialization to be safe
+                MelonLogger.Msg("🧹 Resetting Empire static state after Main scene initialization");
+                if (EmpirePhoneApp.Instance != null)
+                    EmpirePhoneApp.Reset();
+                
+                Contacts.Reset();
 
-			}
+            }
         }
     }
 }

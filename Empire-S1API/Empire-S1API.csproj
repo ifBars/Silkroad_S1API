@@ -118,7 +118,7 @@
        </Reference>
        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
        <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
-       <PackageReference Include="S1API.Forked" Version="2.8.5" />
+       <PackageReference Include="S1API.Forked" Version="2.8.8" />
        
 
 

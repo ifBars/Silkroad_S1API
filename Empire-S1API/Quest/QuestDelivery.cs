@@ -2,7 +2,6 @@
 using System.Linq;
 using UnityEngine;
 using MelonLoader;
-using S1API.Items;
 using S1API.Money;
 using S1API.Storages;
 using S1API.DeadDrops;
@@ -13,11 +12,7 @@ using System.Collections.Generic;
 using S1API.Console;
 using S1API.GameTime;
 using S1API.Internal.Utils;
-using S1API.PhoneApp;
 using S1API.Quests.Constants;
-using Random = UnityEngine.Random;
-using System.IO;
-using MelonLoader.Utils;
 using Empire.Phone;
 using Empire.NPC;
 using Empire.NPC.S1API_NPCs;
@@ -233,7 +228,7 @@ namespace Empire.Quest
             {
                 MelonLogger.Msg("❌ Curfew deal is true but it is not night. Cannot deliver.");
                 //ToDO - Shift to JSON
-                buyer.SendCustomMessage("Deliveries only after Curfew.", Data.ProductID, (int)Data.RequiredAmount, Data.Quality, Data.NecessaryEffects, Data.OptionalEffects);
+                buyer.SendCustomMessage("Deliveries only after Curfew.");
                 return;
             }
 

@@ -84,17 +84,17 @@ namespace Empire.NPC
         /// <summary>
         /// Reset Contacts static state between scene loads to avoid leaking over the previous session.
         /// </summary>
-        //public static void Reset()
-        //{
-        //    Buyers.Clear();
-        //    IsInitialized = false;
-        //    //IsUnlocked = false;
-        //    //BlackmarketBuyer.dealerDataIndex = 0;
-        //    // Reset the dealer field to force re-initialization
-        //    //BlackmarketBuyer.dealer = null;
-        //    _isUpdateCoroutineRunning = false; // Allow coroutine to be restarted
-        //    MelonLogger.Msg("🧹 Empire Contacts state reset complete");
-        //}
+        public static void Reset()
+        {
+            Buyers.Clear();
+            IsInitialized = false;
+            //IsUnlocked = false;
+            //BlackmarketBuyer.dealerDataIndex = 0;
+            // Reset the dealer field to force re-initialization
+            //BlackmarketBuyer.dealer = null;
+            _isUpdateCoroutineRunning = false; // Allow coroutine to be restarted
+            MelonLogger.Msg("🧹 Empire Contacts state reset complete");
+        }
 
         public static void Update()
         {

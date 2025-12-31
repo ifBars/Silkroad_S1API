@@ -8,11 +8,11 @@ namespace Empire.Utilities.QualityHelpers
 	{
 		public static readonly List<QualityInfo> Qualities = new List<QualityInfo>()
 		{
-			new QualityInfo { Name = "trash",     Color = "#a84545", DollarMult = 0.02f },
-			new QualityInfo { Name = "poor",      Color = "#5bad38", DollarMult = 0.05f },
-			new QualityInfo { Name = "standard",  Color = "#358ecd", DollarMult = 0.10f },
-			new QualityInfo { Name = "premium",   Color = "#e93be9", DollarMult = 0.20f },
-			new QualityInfo { Name = "heavenly",  Color = "#ecb522", DollarMult = 0.30f }
+			new QualityInfo { Name = "trash",     Color = "#a84545", DollarMult = 0f },
+			new QualityInfo { Name = "poor",      Color = "#5bad38", DollarMult = 0f },
+			new QualityInfo { Name = "standard",  Color = "#358ecd", DollarMult = 0f },
+			new QualityInfo { Name = "premium",   Color = "#e93be9", DollarMult = 0.25f },
+			new QualityInfo { Name = "heavenly",  Color = "#ecb522", DollarMult = 0.50f }
 		};
 
 		public static readonly Dictionary<string, QualityInfo> ByName =

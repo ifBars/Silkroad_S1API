@@ -1,5 +1,3 @@
-using S1API.Entities;
-using S1API.Entities.NPCs;
 using S1API.PhoneCalls;
 
 namespace Empire.PhoneCalls

@@ -32,7 +32,7 @@ namespace Empire.NPC.S1API_NPCs
 		public abstract List<UnlockRequirement> UnlockRequirements { get; protected set; }
 		public abstract List<string> DealDays { get; protected set; }
 		public abstract bool CurfewDeal { get; protected set; }
-		public abstract List<List<float>> Deals { get; protected set; }
+		public abstract List<List<float>> Deals { get; protected set; } //	Each inner list: { dealTime, dealTimeMultipler, dollarPenalty, RepPenalty }
 		public abstract int RefreshCost { get; protected set; }
 		public abstract DealerReward Reward { get; protected set; }
 		public abstract float RepLogBase { get; protected set; }
@@ -93,7 +93,11 @@ namespace Empire.NPC.S1API_NPCs
 			base.OnLoaded();
 			OnEmpireLoaded();
 
-			
+			if (!DealerSaveData.IsInitialized)
+			{
+				SendTextMessage("Hi, this is just a message to let you know I'm here, and I'm watching you.  Don't screw up.  See you on the way up.");
+				DealerSaveData.IsInitialized = true;
+			}
 
 			MelonLogger.Msg($"📂 Loaded Empire NPC: {DisplayName} (ID: {DealerId})");			
 		}

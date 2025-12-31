@@ -3,6 +3,7 @@ using Empire.NPC.Data;
 using MelonLoader;
 using System;
 using System.Collections.Generic;
+using UnityEngine.Rendering;
 
 namespace Empire.NPC.S1API_NPCs
 {
@@ -30,7 +31,7 @@ namespace Empire.NPC.S1API_NPCs
 				new List<float> { 2f, 0.7f, 1112f, 12f }
 			};
 
-		public override int RefreshCost { get; protected set; } = 420;
+		public override int RefreshCost { get; protected set; } = 200;
 
 		public override DealerReward Reward { get; protected set; } =
 			new DealerReward
@@ -81,7 +82,7 @@ namespace Empire.NPC.S1API_NPCs
 					MinAmount = 1,
 					StepAmount = 1,
 					MaxAmount = 10,
-					DealModifier = new List<float> { 1f, 1f, 1f, 1f }
+					DealModifier = new List<float> { 1f, 1f, 1f, 1f }	
 				},
 				new Shipping
 				{

@@ -30,7 +30,7 @@ namespace Empire.NPC.S1API_NPCs
 				new List<float> { 5f, 1.2f, 113731f, 350f }
 			};
 
-		public override int RefreshCost { get; protected set; } = 420;
+		public override int RefreshCost { get; protected set; } = 500;
 
 		public override DealerReward Reward { get; protected set; } =
 			new DealerReward

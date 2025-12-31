@@ -9,7 +9,7 @@ using Empire_S1API.Utilities;
 using MelonLoader;
 using S1API.Console;
 using S1API.GameTime;
-using S1API.Internal.Utils;
+using S1API.Utils;
 using S1API.Money;
 using S1API.UI;
 using System;
@@ -613,145 +613,145 @@ namespace Empire.Phone
             }
             //else if (tab == "Gifts")
             //{
-            //	// ensure we have a valid buyer
-            //	if (selectedBuyer == null)
-            //	{
-            //		UIFactory.Text("NoSelectionText", "Select a contact from the list.", managementDetailPanel.transform, 18);
-            //		return;
-            //	}
+            //    // ensure we have a valid buyer
+            //    if (selectedBuyer == null)
+            //    {
+            //        UIFactory.Text("NoSelectionText", "Select a contact from the list.", managementDetailPanel.transform, 18);
+            //        return;
+            //    }
 
-            //	// ensure buyer has a Gift defined
-            //	if (selectedBuyer.Gift == null)
-            //	{
-            //		UIFactory.Text("GiftErrorText", "This buyer has no gift available.", managementDetailPanel.transform, 18);
-            //		return;
-            //	}
+            //    // ensure buyer has a Gift defined
+            //    if (selectedBuyer.Gift == null)
+            //    {
+            //        UIFactory.Text("GiftErrorText", "This buyer has no gift available.", managementDetailPanel.transform, 18);
+            //        return;
+            //    }
 
-            //	// --- Gift Info ---
-            //	UIFactory.Text(
-            //		"SpecialDetailText",
-            //		$"<b>Special Gift</b>\nCost: ${selectedBuyer.Gift.Cost}\nReputation Gain: {selectedBuyer.Gift.Rep}",
-            //		managementDetailPanel.transform,
-            //		18
-            //	);
+            //    // --- Gift Info ---
+            //    UIFactory.Text(
+            //        "SpecialDetailText",
+            //        $"<b>Special Gift</b>\nCost: ${selectedBuyer.Gift.Cost}\nReputation Gain: {selectedBuyer.Gift.Rep}",
+            //        managementDetailPanel.transform,
+            //        18
+            //    );
 
-            //	// Remove any existing GiftButton to avoid duplicates
-            //	var old = managementDetailPanel.transform.Find("GiftButton");
-            //	if (old != null)
-            //		GameObject.Destroy(old.gameObject);
+            //    // Remove any existing GiftButton to avoid duplicates
+            //    var old = managementDetailPanel.transform.Find("GiftButton");
+            //    if (old != null)
+            //        GameObject.Destroy(old.gameObject);
 
-            //	// --- Give Gift Button ---
-            //	var giftTuple = UIFactory.RoundedButtonWithLabel(
-            //		"GiftButton",
-            //		"Give Gift",
-            //		managementDetailPanel.transform,
-            //		new Color32(0, 123, 255, 255),
-            //		460f,
-            //		60f,
-            //		22,
-            //		Color.white
-            //	);
+            //    // --- Give Gift Button ---
+            //    var giftTuple = UIFactory.RoundedButtonWithLabel(
+            //        "GiftButton",
+            //        "Give Gift",
+            //        managementDetailPanel.transform,
+            //        new Color32(0, 123, 255, 255),
+            //        460f,
+            //        60f,
+            //        22,
+            //        Color.white
+            //    );
 
-            //	MelonLogger.Msg($"GiftButton returned object: {giftTuple.Item2.name}");
-            //	MelonLogger.Msg($"GiftButton parent: {giftTuple.Item2.transform.parent.name}");
+            //    MelonLogger.Msg($"GiftButton returned object: {giftTuple.Item2.name}");
+            //    MelonLogger.Msg($"GiftButton parent: {giftTuple.Item2.transform.parent.name}");
 
-            //	ButtonUtils.ClearListeners(giftTuple.Item2);
-            //	ButtonUtils.AddListener(giftTuple.Item2, () =>
-            //	{
-            //		int cost = selectedBuyer.Gift.Cost;
-            //                 MelonLogger.Msg($"[EmpirePhoneApp] Attempting to give gift to {selectedBuyer.DisplayName} costing ${cost}.  Money.GetCashBalance() = {Money.GetCashBalance()}");
+            //    ButtonUtils.ClearListeners(giftTuple.Item2);
+            //    ButtonUtils.AddListener(giftTuple.Item2, () =>
+            //    {
+            //        int cost = selectedBuyer.Gift.Cost;
+            //        MelonLogger.Msg($"[EmpirePhoneApp] Attempting to give gift to {selectedBuyer.DisplayName} costing ${cost}.  Money.GetCashBalance() = {Money.GetCashBalance()}");
 
-            //		if (Money.GetCashBalance() < cost)
-            //		{
-            //			var error = UIFactory.Text(
-            //				"SpecialErrorText",
-            //				"<color=#FF0000>Not enough cash for gift.</color>",
-            //				GetMessageParent(),
-            //				18
-            //			);
-            //			MelonCoroutines.Start(BlinkMessage(error));
-            //			return;
-            //		}
+            //        if (Money.GetCashBalance() < cost)
+            //        {
+            //            var error = UIFactory.Text(
+            //                "SpecialErrorText",
+            //                "<color=#FF0000>Not enough cash for gift.</color>",
+            //                GetMessageParent(),
+            //                18
+            //            );
+            //            MelonCoroutines.Start(BlinkMessage(error));
+            //            return;
+            //        }
 
-            //		// Apply gift effects
-            //		ConsoleHelper.RunCashCommand(-cost);
-            //		selectedBuyer.GiveReputation(selectedBuyer.Gift.Rep);
+            //        // Apply gift effects
+            //        ConsoleHelper.RunCashCommand(-cost);
+            //        selectedBuyer.GiveReputation(selectedBuyer.Gift.Rep);
 
-            //		var successMessage = UIFactory.Text(
-            //			"SpecialSuccessText",
-            //			$"Gift given! Reputation increased by {selectedBuyer.Gift.Rep}.",
-            //			GetMessageParent(),
-            //			18
-            //		);
-            //		MelonCoroutines.Start(BlinkMessage(successMessage));
+            //        var successMessage = UIFactory.Text(
+            //            "SpecialSuccessText",
+            //            $"Gift given! Reputation increased by {selectedBuyer.Gift.Rep}.",
+            //            GetMessageParent(),
+            //            18
+            //        );
+            //        MelonCoroutines.Start(BlinkMessage(successMessage));
 
-            //		// Refresh Contacts data (does NOT replace buyer instances anymore)
-            //		Contacts.Update();
+            //        // Refresh Contacts data (does NOT replace buyer instances anymore)
+            //        Contacts.Update();
 
-            //		var resolved = Contacts.GetBuyer(selectedBuyer.DisplayName);
-            //		MelonLogger.Msg($"[GiftButton] Before: {selectedBuyer.GetHashCode()}, After: {resolved.GetHashCode()}");
+            //        var resolved = Contacts.GetBuyer(selectedBuyer.DisplayName);
+            //        MelonLogger.Msg($"[GiftButton] Before: {selectedBuyer.GetHashCode()}, After: {resolved.GetHashCode()}");
 
-            //                 if (resolved != null)
-            //                 {
-            //			selectedBuyer = Contacts.GetBuyer(resolved.DisplayName);
-            //		}                    
+            //        if (resolved != null)
+            //        {
+            //            selectedBuyer = Contacts.GetBuyer(resolved.DisplayName);
+            //        }
 
-            //		// Rebuild Gifts UI with the same selectedBuyer
-            //		UpdateBuyerDetails("Gifts");
-            //	});
+            //        // Rebuild Gifts UI with the same selectedBuyer
+            //        UpdateBuyerDetails("Gifts");
+            //    });
 
-            //	MelonLogger.Msg("[GiftsTab] Entering reward section");
-            //	// --- Reward Section ---
-            //	var rewardManager = selectedBuyer.RewardManager;
-            //	string rewardType = rewardManager?.GetRewardType() ?? "No reward available";
+            //    MelonLogger.Msg("[GiftsTab] Entering reward section");
+            //    // --- Reward Section ---
+            //    var rewardManager = selectedBuyer.RewardManager;
+            //    string rewardType = rewardManager?.GetRewardType() ?? "No reward available";
 
-            //	if (selectedBuyer.Reward?.Args != null && selectedBuyer.Reward.Args.Count > 0)
-            //	{
-            //		rewardType += " - " + string.Join(" ", selectedBuyer.Reward.Args) + " - Reward will be given after 10 secs";
-            //	}
+            //    if (selectedBuyer.Reward?.Args != null && selectedBuyer.Reward.Args.Count > 0)
+            //    {
+            //        rewardType += " - " + string.Join(" ", selectedBuyer.Reward.Args) + " - Reward will be given after 10 secs";
+            //    }
 
-            //	UIFactory.Text("RewardTypeText", $"Reward Type: {rewardType}", managementDetailPanel.transform, 18);
+            //    UIFactory.Text("RewardTypeText", $"Reward Type: {rewardType}", managementDetailPanel.transform, 18);
 
-            //	var rewardButtonTuple = UIFactory.RoundedButtonWithLabel(
-            //		"RewardButton",
-            //		"Claim Reward",
-            //		managementDetailPanel.transform,
-            //		new Color32(0, 123, 255, 255),
-            //		460f,
-            //		60f,
-            //		22,
-            //		Color.white
-            //	);
+            //    var rewardButtonTuple = UIFactory.RoundedButtonWithLabel(
+            //        "RewardButton",
+            //        "Claim Reward",
+            //        managementDetailPanel.transform,
+            //        new Color32(0, 123, 255, 255),
+            //        460f,
+            //        60f,
+            //        22,
+            //        Color.white
+            //    );
 
-            //	ButtonUtils.ClearListeners(rewardButtonTuple.Item2);
-            //	ButtonUtils.AddListener(rewardButtonTuple.Item2, () =>
-            //	{
-            //		if (!rewardManager?.isRewardAvailable ?? true)
-            //		{
-            //			var error = UIFactory.Text(
-            //				"RewardResultText",
-            //				"<color=#FF0000>Reward not available today.</color>",
-            //				GetMessageParent(),
-            //				18
-            //			);
-            //			MelonCoroutines.Start(BlinkMessage(error));
-            //			return;
-            //		}
+            //    ButtonUtils.ClearListeners(rewardButtonTuple.Item2);
+            //    ButtonUtils.AddListener(rewardButtonTuple.Item2, () =>
+            //    {
+            //        if (!rewardManager?.isRewardAvailable ?? true)
+            //        {
+            //            var error = UIFactory.Text(
+            //                "RewardResultText",
+            //                "<color=#FF0000>Reward not available today.</color>",
+            //                GetMessageParent(),
+            //                18
+            //            );
+            //            MelonCoroutines.Start(BlinkMessage(error));
+            //            return;
+            //        }
 
-            //		rewardManager.GiveReward();
+            //        rewardManager.GiveReward();
 
-            //		var success = UIFactory.Text(
-            //			"RewardResultText",
-            //			"<color=#00FF00>Reward claimed!</color>",
-            //			GetMessageParent(),
-            //			18
-            //		);
-            //		MelonCoroutines.Start(BlinkMessage(success));
+            //        var success = UIFactory.Text(
+            //            "RewardResultText",
+            //            "<color=#00FF00>Reward claimed!</color>",
+            //            GetMessageParent(),
+            //            18
+            //        );
+            //        MelonCoroutines.Start(BlinkMessage(success));
 
-            //		// Refresh UI
-            //		UpdateBuyerDetails("Gifts");
-            //	});
-            //	MelonLogger.Msg("[GiftsTab] Reward section complete");
+            //        // Refresh UI
+            //        UpdateBuyerDetails("Gifts");
+            //    });
+            //    MelonLogger.Msg("[GiftsTab] Reward section complete");
             //}
             else if (tab == "Debt")
             {
@@ -912,7 +912,7 @@ namespace Empire.Phone
             {
                 string currentDay = TimeManager.CurrentDay.ToString();
                 MelonLogger.Msg($"RefreshButton(): Current Day: {currentDay}.");
-                if (buyer.DealDays != null && buyer.DealDays.Contains(currentDay) && buyer.IsInitialized)
+                if (buyer.DealDays != null && buyer.DealDays.Contains(currentDay) && buyer.IsUnlocked)
                 {
                     refreshCost += buyer.RefreshCost;
                 }
