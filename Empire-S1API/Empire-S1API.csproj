@@ -165,7 +165,7 @@
 
     <!-- S1API.Forked: Use NuGet package when not using local assembly -->
     <ItemGroup Condition="'$(UseLocalS1APIForked)' != 'true'">
-       <PackageReference Include="S1API.Forked" Version="2.8.8" />
+       <PackageReference Include="S1API.Forked" Version="2.8.9" />
     </ItemGroup>
 
     <!-- S1API.Forked: Use local assembly reference when enabled -->
@@ -181,24 +181,7 @@
 			<_Parameter1>Empire.Tests</_Parameter1>
 		</AssemblyAttribute>
 	</ItemGroup>
-
-
-	<!-- Automated local deployment 
-    <Target Name="PostBuildMono" AfterTargets="Build" Condition=" '$(AutomateLocalDeployment)' == 'true' and '$(Configuration)' == 'Mono' ">
-        <Copy SourceFiles=".\bin\Mono\.netstandard2.1\Empire-S1API.dll" DestinationFiles="$(LocalMonoDeploymentPath)\Mods\Empire.dll" />
-		<Copy SourceFiles=".\References\empire.json" DestinationFiles="$(LocalMonoDeploymentPath)\Mods\Empire\empire.json" />
-		<Copy SourceFiles=".\bin\Mono\.netstandard2.1\Empire-S1API.dll" DestinationFiles="..\Mods\Empire.dll" />
-		<Copy SourceFiles=".\References\empire.json" DestinationFiles="..\Mods\Empire\empire.json" />
-    </Target>-->
-
-	<!-- Automated local deployment 
-	<Target Name="PostBuildIl2Cpp" AfterTargets="Build" Condition=" '$(AutomateLocalDeployment)' == 'true' and '$(Configuration)' == 'Il2Cpp' ">
-		<Copy SourceFiles=".\bin\Il2Cpp\.netstandard2.1\Empire-S1API.dll" DestinationFiles="$(LocalIl2CppDeploymentPath)\Mods\Empire.dll" />
-		<Copy SourceFiles=".\References\empire.json" DestinationFiles="$(LocalIl2CppDeploymentPath)\Mods\Empire\empire.json" />
-		<Copy SourceFiles=".\bin\Il2Cpp\.netstandard2.1\Empire-S1API.dll" DestinationFiles="..\Mods\Empire.dll" />
-		<Copy SourceFiles=".\References\empire.json" DestinationFiles="..\Mods\Empire\empire.json" />
-	</Target>-->
-
+	
 	<Target Name="PostBuild" AfterTargets="Build">
 		<Copy SourceFiles="$(TargetDir)Empire-S1API.dll" DestinationFolder="C:\Program Files (x86)\Steam\steamapps\common\Schedule I_MONO\Mods\" />
 	</Target>

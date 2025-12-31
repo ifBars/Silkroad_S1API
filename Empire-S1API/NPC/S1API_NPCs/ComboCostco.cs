@@ -1,9 +1,6 @@
 ﻿using Empire.DebtHelpers;
 using Empire.NPC.Data;
-using MelonLoader;
-using System;
 using System.Collections.Generic;
-using UnityEngine.Rendering;
 
 namespace Empire.NPC.S1API_NPCs
 {
