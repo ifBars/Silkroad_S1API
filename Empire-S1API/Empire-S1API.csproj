@@ -5,7 +5,8 @@
 
     <!-- General properties -->
     <PropertyGroup>
-		<TargetFramework>netstandard2.1</TargetFramework>
+		<TargetFramework Condition="'$(Configuration)' != 'Il2Cpp'">netstandard2.1</TargetFramework>
+		<TargetFramework Condition="'$(Configuration)' == 'Il2Cpp'">net6.0</TargetFramework>
 		<Authors>Aracor</Authors>
         <PackageId>Empire</PackageId>
         <Description>A Schedule One NPC Framework</Description>
@@ -59,6 +60,9 @@
         <Reference Include="Assembly-CSharp">
             <HintPath>$(Il2CppAssembliesPath)\Assembly-CSharp.dll</HintPath>
         </Reference>
+        <Reference Include="Il2CppScheduleOne.Core">
+            <HintPath>$(Il2CppAssembliesPath)\Il2CppScheduleOne.Core.dll</HintPath>
+        </Reference>
         <Reference Include="Il2CppFishNet.Runtime">
             <HintPath>$(Il2CppAssembliesPath)\Il2CppFishNet.Runtime.dll</HintPath>
         </Reference>
@@ -92,6 +96,9 @@
         </Reference>
         <Reference Include="Assembly-CSharp">
             <HintPath>$(MonoAssembliesPath)\Assembly-CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="ScheduleOne.Core">
+            <HintPath>$(MonoAssembliesPath)\ScheduleOne.Core.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine">
             <HintPath>$(MonoAssembliesPath)\UnityEngine.dll</HintPath>
@@ -182,7 +189,7 @@
 		</AssemblyAttribute>
 	</ItemGroup>
 	
-	<Target Name="PostBuild" AfterTargets="Build">
+	<Target Name="PostBuild" AfterTargets="Build" Condition="'$(AutomateLocalDeployment)' == 'true'">
 		<Copy SourceFiles="$(TargetDir)Empire-S1API.dll" DestinationFolder="C:\Program Files (x86)\Steam\steamapps\common\Schedule I_MONO\Mods\" />
 	</Target>
 </Project>
